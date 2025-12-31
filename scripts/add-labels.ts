@@ -18,7 +18,7 @@ import dotenv from "dotenv";
             identifier: "fortuneA",
             severity: "inform",
             blurs: "none",
-            defaultSetting: "ignore",
+            defaultSetting: "warn",
             locales: [
                 { lang: "ja", name: "fortuneA", description: "Random Label A" },
                 { lang: "en", name: "fortuneA", description: "Random Label A" },
