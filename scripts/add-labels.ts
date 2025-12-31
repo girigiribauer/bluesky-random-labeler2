@@ -16,7 +16,7 @@ import dotenv from "dotenv";
     const labels1to10 = Array.from({ length: 10 }, (_, i) => {
         const val = (i + 1).toString();
         return {
-            identifier: val,
+            identifier: `label-${val}`,
             severity: "inform",
             blurs: "none",
             defaultSetting: "warn",
@@ -30,7 +30,7 @@ import dotenv from "dotenv";
     const labelsAtoJ = Array.from({ length: 10 }, (_, i) => {
         const val = String.fromCharCode(65 + i); // 65 = 'A'
         return {
-            identifier: val,
+            identifier: `label-${val}`,
             severity: "inform",
             blurs: "none",
             defaultSetting: "warn",

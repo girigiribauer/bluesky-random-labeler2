@@ -1,16 +1,16 @@
 import { createHash } from "node:crypto";
 
 export const LABELS = [
-    "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
-    "A", "B", "C", "D", "E", "F", "G", "H", "I", "J"
+    "label-1", "label-2", "label-3", "label-4", "label-5", "label-6", "label-7", "label-8", "label-9", "label-10",
+    "label-A", "label-B", "label-C", "label-D", "label-E", "label-F", "label-G", "label-H", "label-I", "label-J"
 ];
 
 function mulberry32(a: number) {
-    return function() {
-      let t = a += 0x6D2B79F5;
-      t = Math.imul(t ^ (t >>> 15), t | 1);
-      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    return function () {
+        let t = a += 0x6D2B79F5;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     }
 }
 

@@ -4,7 +4,9 @@ import { getJstTime } from "./utils.js";
 // db import removed to keep this file pure/testable
 
 const OLD_LABELS = [
-    "daikichi", "kichi", "chukichi", "shokichi", "suekichi", "kyo", "daikyo"
+    "daikichi", "kichi", "chukichi", "shokichi", "suekichi", "kyo", "daikyo",
+    "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
+    "A", "B", "C", "D", "E", "F", "G", "H", "I", "J"
 ];
 
 /**

@@ -10,10 +10,10 @@ describe("Fortune Logic (Label Selection)", () => {
     it("should define exactly 20 labels", () => {
         expect(LABELS.length).toBe(20);
         // Ensure 1-10 and A-J exist (basic check)
-        expect(LABELS).toContain("1");
-        expect(LABELS).toContain("10");
-        expect(LABELS).toContain("A");
-        expect(LABELS).toContain("J");
+        expect(LABELS).toContain("label-1");
+        expect(LABELS).toContain("label-10");
+        expect(LABELS).toContain("label-A");
+        expect(LABELS).toContain("label-J");
     });
 
     it("should return exactly 10 unique labels", () => {
