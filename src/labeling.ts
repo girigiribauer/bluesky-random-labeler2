@@ -3,13 +3,19 @@ import { LABELS, getDailyLabels } from "./fortune.js";
 import { getJstTime } from "./utils.js";
 // db import removed to keep this file pure/testable
 
+const OLD_LABELS = [
+    "daikichi", "kichi", "chukichi", "shokichi", "suekichi", "kyo", "daikyo"
+];
+
 /**
  * 指定されたラベル以外の全てのラベルリスト（Negate対象）を返します。
+ * 旧運勢ラベルも常にNegate対象に含めます。
  * @param currentLabels 現在のラベルリスト
  * @returns 打ち消すべきラベルのリスト
  */
 export function calculateNegateList(currentLabels: string[]): string[] {
-    return LABELS.filter((l) => !currentLabels.includes(l));
+    const newLabelsToNegate = LABELS.filter((l) => !currentLabels.includes(l));
+    return [...newLabelsToNegate, ...OLD_LABELS];
 }
 
 /**

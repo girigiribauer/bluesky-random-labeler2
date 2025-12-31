@@ -13,90 +13,50 @@ import dotenv from "dotenv";
 
     console.log("Adding label definitions...");
 
+    const labels1to10 = Array.from({ length: 10 }, (_, i) => {
+        const val = (i + 1).toString();
+        return {
+            identifier: val,
+            severity: "inform",
+            blurs: "none",
+            defaultSetting: "warn",
+            locales: [
+                { lang: "ja", name: val, description: val },
+                { lang: "en", name: val, description: val },
+            ],
+        };
+    });
+
+    const labelsAtoJ = Array.from({ length: 10 }, (_, i) => {
+        const val = String.fromCharCode(65 + i); // 65 = 'A'
+        return {
+            identifier: val,
+            severity: "inform",
+            blurs: "none",
+            defaultSetting: "warn",
+            locales: [
+                { lang: "ja", name: val, description: val },
+                { lang: "en", name: val, description: val },
+            ],
+        };
+    });
+
+    const allDefinitions = [...labels1to10, ...labelsAtoJ];
+    const allValues = allDefinitions.map(d => d.identifier);
+
     console.log("Sending putRecord request...");
+    // @ts-ignore
     await bot.agent.call("com.atproto.repo.putRecord", {
         data: {
-            repo: bot.profile.did,
+            repo: bot.profile.did, // Use bot.profile.did instead of process.env which might be empty
             collection: "app.bsky.labeler.service",
             rkey: "self",
             record: {
                 $type: "app.bsky.labeler.service",
                 createdAt: new Date().toISOString(),
                 policies: {
-                    labelValues: [
-                        "daikichi",
-                        "kichi",
-                        "chukichi",
-                        "shokichi",
-                        "suekichi",
-                        "kyo",
-                        "daikyo",
-                    ],
-                    labelValueDefinitions: [
-                        {
-                            identifier: "daikichi",
-                            severity: "inform",
-                            blurs: "none",
-                            defaultSetting: "warn",
-                            locales: [
-                                { lang: "ja", name: "大吉", description: "今日の運勢は大吉！最高の一日があなたを待ってる！" },
-                            ],
-                        },
-                        {
-                            identifier: "kichi",
-                            severity: "inform",
-                            blurs: "none",
-                            defaultSetting: "warn",
-                            locales: [
-                                { lang: "ja", name: "吉", description: "今日の運勢は吉！楽しい一日になりそう！" },
-                            ],
-                        },
-                        {
-                            identifier: "chukichi",
-                            severity: "inform",
-                            blurs: "none",
-                            defaultSetting: "warn",
-                            locales: [
-                                { lang: "ja", name: "中吉", description: "今日の運勢は中吉！楽しんでいこ！" },
-                            ],
-                        },
-                        {
-                            identifier: "shokichi",
-                            severity: "inform",
-                            blurs: "none",
-                            defaultSetting: "warn",
-                            locales: [
-                                { lang: "ja", name: "小吉", description: "今日の運勢は小吉！小さな幸せ見つけよう！" },
-                            ],
-                        },
-                        {
-                            identifier: "suekichi",
-                            severity: "inform",
-                            blurs: "none",
-                            defaultSetting: "warn",
-                            locales: [
-                                { lang: "ja", name: "末吉", description: "今日の運勢は末吉！すえひろがりな一日を！" },
-                            ],
-                        },
-                        {
-                            identifier: "kyo",
-                            severity: "inform",
-                            blurs: "none",
-                            defaultSetting: "warn",
-                            locales: [
-                                { lang: "ja", name: "凶", description: "今日の運勢は凶。気を引き締めていこう！" },
-                            ],
-                        },
-                        {
-                            identifier: "daikyo",
-                            severity: "inform",
-                            blurs: "none",
-                            defaultSetting: "warn",
-                            locales: [
-                                { lang: "ja", name: "大凶", description: "今日の運勢は大凶。無理せず慎重に！" },
-                            ],
-                        },
-                    ],
+                    labelValues: allValues,
+                    labelValueDefinitions: allDefinitions,
                 },
             },
         },
