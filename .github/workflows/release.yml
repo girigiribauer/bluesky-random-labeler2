@@ -29,9 +29,9 @@ jobs:
 
       - name: env ファイルの作成
         run: |
-          echo "LABELER_DID=${{ secrets.LABELER_DID }}" >> dist/.env
-          echo "LABELER_PASSWORD=${{ secrets.LABELER_PASSWORD }}" >> dist/.env
-          echo "SIGNING_KEY=${{ secrets.SIGNING_KEY }}" >> dist/.env
+          echo "LABELER_DID=\"${{ secrets.LABELER_DID }}\"" >> dist/.env
+          echo "LABELER_PASSWORD=\"${{ secrets.LABELER_PASSWORD }}\"" >> dist/.env
+          echo "SIGNING_KEY=\"${{ secrets.SIGNING_KEY }}\"" >> dist/.env
           echo "DB_PATH=/data/labels.db" >> dist/.env
           echo "PORT=3000" >> dist/.env
 
