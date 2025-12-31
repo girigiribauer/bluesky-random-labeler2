@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
 export const LABELS = [
-    "fortuneA"
+    "fortuneX"
 ];
 
 function mulberry32(a: number) {

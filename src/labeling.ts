@@ -4,13 +4,8 @@ import { getJstTime } from "./utils.js";
 // db import removed to keep this file pure/testable
 
 const OLD_LABELS = [
-    "daikichi", "kichi", "chukichi", "shokichi", "suekichi", "kyo", "daikyo",
-    "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
-    "A", "B", "C", "D", "E", "F", "G", "H", "I", "J",
-    "label-1", "label-2", "label-3", "label-4", "label-5", "label-6", "label-7", "label-8", "label-9", "label-10",
-    "label-A", "label-B", "label-C", "label-D", "label-E", "label-F", "label-G", "label-H", "label-I", "label-J",
-    "fortuneB", "fortuneC", "fortuneD", "fortuneE", "fortuneF", "fortuneG", "fortuneH", "fortuneI", "fortuneJ",
-    "fortuneK", "fortuneL", "fortuneM", "fortuneN", "fortuneO", "fortuneP", "fortuneQ", "fortuneR", "fortuneS", "fortuneT"
+    "fortuneA",
+    "label-2", // Keeping label-2 just in case as it was the persistent one
 ];
 
 /**

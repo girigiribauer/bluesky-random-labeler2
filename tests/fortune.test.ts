@@ -15,7 +15,7 @@ describe("Fortune Logic (Label Selection)", () => {
     it("should return exactly 1 label", () => {
         const result = getDailyLabels(did1, today);
         expect(result.length).toBe(1);
-        expect(result[0]).toBe("fortuneA");
+        expect(result[0]).toBe("fortuneX");
     });
 
     it("should allow deterministic result (always fortuneA)", () => {
