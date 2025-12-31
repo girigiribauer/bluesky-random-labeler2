@@ -30,6 +30,6 @@ export function getDailyLabels(did: string, date: Date = new Date()): string[] {
         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
 
-    // Return the first 3
-    return shuffled.slice(0, 3);
+    // Return the first 1
+    return shuffled.slice(0, 1);
 }
