@@ -15,28 +15,30 @@ import dotenv from "dotenv";
 
     const labels1to10 = Array.from({ length: 10 }, (_, i) => {
         const val = (i + 1).toString();
+        const labelName = `label-${val}`;
         return {
-            identifier: `label-${val}`,
+            identifier: labelName,
             severity: "inform",
             blurs: "none",
             defaultSetting: "warn",
             locales: [
-                { lang: "ja", name: val, description: val },
-                { lang: "en", name: val, description: val },
+                { lang: "ja", name: labelName, description: labelName },
+                { lang: "en", name: labelName, description: labelName },
             ],
         };
     });
 
     const labelsAtoJ = Array.from({ length: 10 }, (_, i) => {
         const val = String.fromCharCode(65 + i); // 65 = 'A'
+        const labelName = `label-${val}`;
         return {
-            identifier: `label-${val}`,
+            identifier: labelName,
             severity: "inform",
             blurs: "none",
             defaultSetting: "warn",
             locales: [
-                { lang: "ja", name: val, description: val },
-                { lang: "en", name: val, description: val },
+                { lang: "ja", name: labelName, description: labelName },
+                { lang: "en", name: labelName, description: labelName },
             ],
         };
     });
