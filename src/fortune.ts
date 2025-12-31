@@ -1,8 +1,7 @@
 import { createHash } from "node:crypto";
 
 export const LABELS = [
-    "label-1", "label-2", "label-3", "label-4", "label-5", "label-6", "label-7", "label-8", "label-9", "label-10",
-    "label-A", "label-B", "label-C", "label-D", "label-E", "label-F", "label-G", "label-H", "label-I", "label-J"
+    "fortuneA"
 ];
 
 function mulberry32(a: number) {

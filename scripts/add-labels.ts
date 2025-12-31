@@ -13,37 +13,21 @@ import dotenv from "dotenv";
 
     console.log("Adding label definitions...");
 
-    const labels1to10 = Array.from({ length: 10 }, (_, i) => {
-        const val = (i + 1).toString();
-        const labelName = `label-${val}`;
-        return {
-            identifier: labelName,
+    const labels = [
+        {
+            identifier: "fortuneA",
             severity: "inform",
             blurs: "none",
             defaultSetting: "warn",
             locales: [
-                { lang: "ja", name: labelName, description: labelName },
-                { lang: "en", name: labelName, description: labelName },
+                { lang: "ja", name: "fortuneA", description: "Random Label A" },
+                { lang: "en", name: "fortuneA", description: "Random Label A" },
             ],
-        };
-    });
+        }
+    ];
 
-    const labelsAtoJ = Array.from({ length: 10 }, (_, i) => {
-        const val = String.fromCharCode(65 + i); // 65 = 'A'
-        const labelName = `label-${val}`;
-        return {
-            identifier: labelName,
-            severity: "inform",
-            blurs: "none",
-            defaultSetting: "warn",
-            locales: [
-                { lang: "ja", name: labelName, description: labelName },
-                { lang: "en", name: labelName, description: labelName },
-            ],
-        };
-    });
+    const allDefinitions = labels;
 
-    const allDefinitions = [...labels1to10, ...labelsAtoJ];
     const allValues = allDefinitions.map(d => d.identifier);
 
     console.log("Sending putRecord request...");
