@@ -25,16 +25,16 @@ import dotenv from "dotenv";
                 createdAt: new Date().toISOString(),
                 policies: {
                     labelValues: [
-                        "testing123",
+                        "testing",
                     ],
                     labelValueDefinitions: [
                         {
-                            identifier: "testing123",
+                            identifier: "testing",
                             severity: "inform",
                             blurs: "none",
                             defaultSetting: "warn",
                             locales: [
-                                { lang: "ja", name: "テスト123", description: "これはテストラベルです" },
+                                { lang: "ja", name: "テスト", description: "これはテストラベルです" },
                             ],
                         },
                     ],
