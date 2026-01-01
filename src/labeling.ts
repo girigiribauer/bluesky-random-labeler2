@@ -16,6 +16,10 @@ export async function processUser(did: string, labeler: LabelerServer, handle?: 
     console.log(`[${now}] Processing ${identifier}, fortune: ${fortune}`);
 
     try {
+        // 1. Negate all existing labels to clean up
+        await labeler.createLabels({ uri: did }, { negate: LABELS });
+
+        // 2. Create the new label
         await labeler.createLabels(
             { uri: did },
             {
