@@ -15,13 +15,13 @@ import dotenv from "dotenv";
 
     const labels = [
         {
-            identifier: "fortuneX",
+            identifier: "testing123",
             severity: "inform",
             blurs: "none",
             defaultSetting: "warn",
             locales: [
-                { lang: "ja", name: "fortuneX", description: "Random Label X" },
-                { lang: "en", name: "fortuneX", description: "Random Label X" },
+                { lang: "ja", name: "testing123", description: "Test Label 123" },
+                { lang: "en", name: "testing123", description: "Test Label 123" },
             ],
         }
     ];
