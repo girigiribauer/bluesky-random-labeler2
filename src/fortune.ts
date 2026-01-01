@@ -2,7 +2,7 @@
 import { createHash } from "node:crypto";
 
 export const FORTUNES = [
-    { val: "kichi", threshold: 100 },    // 100%
+    { val: "testing123", threshold: 100 },    // 100%
 ];
 
 export function getDailyFortune(did: string, date: Date = new Date()): string {

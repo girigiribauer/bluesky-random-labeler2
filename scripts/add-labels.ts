@@ -25,16 +25,16 @@ import dotenv from "dotenv";
                 createdAt: new Date().toISOString(),
                 policies: {
                     labelValues: [
-                        "kichi",
+                        "testing123",
                     ],
                     labelValueDefinitions: [
                         {
-                            identifier: "kichi",
+                            identifier: "testing123",
                             severity: "inform",
                             blurs: "none",
                             defaultSetting: "warn",
                             locales: [
-                                { lang: "ja", name: "吉", description: "今日の運勢は吉！楽しい一日になりそう！" },
+                                { lang: "ja", name: "テスト123", description: "これはテストラベルです" },
                             ],
                         },
                     ],
