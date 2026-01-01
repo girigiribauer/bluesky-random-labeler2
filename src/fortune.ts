@@ -2,13 +2,7 @@
 import { createHash } from "node:crypto";
 
 export const FORTUNES = [
-    { val: "daikichi", threshold: 6 },   // 6%
-    { val: "kichi", threshold: 28 },     // 22%
-    { val: "chukichi", threshold: 50 },  // 22%
-    { val: "shokichi", threshold: 70 },  // 20%
-    { val: "suekichi", threshold: 88 },  // 18%
-    { val: "kyo", threshold: 97 },       // 9%
-    { val: "daikyo", threshold: 100 },   // 3%
+    { val: "kichi", threshold: 100 },    // 100%
 ];
 
 export function getDailyFortune(did: string, date: Date = new Date()): string {
