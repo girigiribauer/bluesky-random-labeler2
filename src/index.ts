@@ -47,14 +47,19 @@ class HonoManualLabeler implements Labeler {
     // Helper to create label object
     // @ipld/dag-cbor handles map sorting automatically (Canonical CBOR)
     // So explicit key sorting here is good practice but dag-cbor ensures it.
-    const createLabelObj = (val: string, neg: boolean) => ({
-      ver: 1,
-      src: this.did,
-      uri: target.uri,
-      val: val,
-      neg: neg,
-      cts: now.toISOString(),
-    });
+    const createLabelObj = (val: string, neg: boolean) => {
+      const obj: any = {
+        ver: 1,
+        src: this.did,
+        uri: target.uri,
+        val: val,
+        cts: now.toISOString(),
+      };
+      if (neg) {
+        obj.neg = true;
+      }
+      return obj;
+    };
 
     // Process Create (Positive Labels)
     if (options.create) {
