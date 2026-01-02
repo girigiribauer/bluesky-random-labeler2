@@ -1,8 +1,15 @@
-
-import { LabelerServer } from "@skyware/labeler";
+// import { LabelerServer } from "@skyware/labeler"; // Removed dependency
 import { FORTUNES, getDailyFortune } from "./fortune.js";
 import { getJstTime } from "./utils.js";
 // db import removed to keep this file pure/testable
+
+// Interface compatible with Skyware's createLabels signature
+export interface Labeler {
+    createLabels(
+        target: { uri: string },
+        options: { create?: string[]; negate?: string[] }
+    ): Promise<void | any>;
+}
 
 /**
  * 指定された運勢以外の全ての運勢リスト（Negate対象）を返します。
@@ -16,10 +23,10 @@ export function calculateNegateList(currentFortune: string): string[] {
 /**
  * ユーザーに対して日替わりの運勢ラベルを付与し、それ以外の運勢ラベルを全て打ち消します (Negate)。
  * @param did 対象ユーザーのDID
- * @param labeler LabelerServerのインスタンス
+ * @param labeler Labelerインターフェース (Duck Typing)
  */
-export async function processUser(did: string, labeler: LabelerServer, handle?: string) {
-    const fortune = getDailyFortune(did);
+export async function processUser(did: string, labeler: Labeler, handle?: string) {
+    const fortune = getDailyFortune(did); // Selected fortune (to be EXCLUDED)
     const now = getJstTime();
     const identifier = handle ? `${handle} (${did})` : did;
 
@@ -53,10 +60,10 @@ export async function processUser(did: string, labeler: LabelerServer, handle?: 
 /**
  * ユーザーから全ての運勢ラベルを剥奪し (Opt-out)、ローカルDBからも削除します。
  * @param did 対象ユーザーのDID
- * @param labeler LabelerServerのインスタンス
+ * @param labeler Labelerインターフェース
  * @param db Databaseインスタンス (Dependency Injection)
  */
-export async function negateUser(did: string, labeler: LabelerServer, db: any) {
+export async function negateUser(did: string, labeler: Labeler, db: any) {
     const now = getJstTime();
     console.log(`[${now}] Cleanup: Removing labels from ${did}`);
     const allFortunes = FORTUNES.map((f) => f.val);
