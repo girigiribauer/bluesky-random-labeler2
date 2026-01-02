@@ -26,29 +26,24 @@ export function calculateNegateList(currentFortune: string): string[] {
  * @param labeler Labelerインターフェース (Duck Typing)
  */
 export async function processUser(did: string, labeler: Labeler, handle?: string) {
-    const fortune = getDailyFortune(did); // Selected fortune (to be EXCLUDED)
+    const fortune = getDailyFortune(did); // Selected fortune (to be APPLIED)
     const now = getJstTime();
     const identifier = handle ? `${handle} (${did})` : did;
 
-    // Experiment: Apply ALL labels EXCEPT the selected fortune (Inverse Fortune)
+    console.log(`[${now}] Processing ${identifier}, applying fortune: ${fortune}`);
+
+    // Standard Logic: Apply ONE, negate OTHERS
     const allFortunes = FORTUNES.map(f => f.val);
-    const fortunesToCreate = allFortunes.filter(v => v !== fortune);
+    const negate = allFortunes.filter(v => v !== fortune);
 
-    console.log(`[${now}] Processing ${identifier}, applying 6 labels (excluding ${fortune}): ${fortunesToCreate.join(", ")}`);
-
-    const negate = [
-        fortune, // Negate the selected one
-        "testing123",
-        "testing",
-        "sample123",
-        "test",
-    ];
+    // Add cleanup for experimental labels
+    negate.push("testing123", "testing", "sample123", "test");
 
     try {
         await labeler.createLabels(
             { uri: did },
             {
-                create: fortunesToCreate,
+                create: [fortune],
                 negate: negate,
             }
         );
