@@ -48,31 +48,27 @@ class HonoManualLabeler implements Labeler {
     const seq = Date.now(); // DB-less sequence
     const labels: any[] = [];
 
+    // Helper to create canonical object (Keys sorted: cts, neg, src, uri, val, ver)
+    const createLabelObj = (val: string, neg: boolean) => ({
+      cts: now.toISOString(),
+      neg: neg,
+      src: this.did,
+      uri: target.uri,
+      val: val,
+      ver: 1,
+    });
+
     // Process Create (Positive Labels)
     if (options.create) {
       for (const val of options.create) {
-        labels.push({
-          ver: 1,
-          src: this.did,
-          uri: target.uri,
-          val: val,
-          neg: false,
-          cts: now.toISOString(),
-        });
+        labels.push(createLabelObj(val, false));
       }
     }
 
     // Process Negate (Negative Labels)
     if (options.negate) {
       for (const val of options.negate) {
-        labels.push({
-          ver: 1,
-          src: this.did,
-          uri: target.uri,
-          val: val,
-          neg: true,
-          cts: now.toISOString(),
-        });
+        labels.push(createLabelObj(val, true));
       }
     }
 
