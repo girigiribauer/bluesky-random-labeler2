@@ -19,6 +19,7 @@
     "@atproto/repo": "^0.8.12",
     "@atproto/xrpc-server": "^0.10.5",
     "@hono/node-ws": "^1.2.0",
+    "@ipld/dag-cbor": "^9.2.5",
     "@types/ws": "^8.18.1",
     "cbor-x": "^1.6.0",
     "dotenv": "^16.4.7",

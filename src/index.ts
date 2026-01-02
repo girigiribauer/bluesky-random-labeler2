@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { createNodeWebSocket } from "@hono/node-ws";
 import { Secp256k1Keypair } from "@atproto/crypto";
 import dotenv from "dotenv";
-import { Encoder } from "cbor-x";
+import { encode } from "@ipld/dag-cbor";
 import { processUser, Labeler } from "./labeling.js";
 import type { WebSocket } from "ws";
 
@@ -14,14 +14,10 @@ dotenv.config();
  * - Uses Hono for routing/server
  * - Bypasses Skyware
  * - No DB
+ * - Uses @ipld/dag-cbor for Canonical CBOR (Critical for signatures)
  */
 
 const PORT = parseInt(process.env.PORT || "3000");
-
-// Setup Encoding
-const encoder = new Encoder({
-  tagUint8Array: false,
-});
 
 // Hono App
 const app = new Hono();
@@ -30,7 +26,7 @@ const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
 // Store connected clients
 // Hono's WS helper is a bit different, but we can store the raw ws instance from onOpen if needed,
 // or use a broadcasting mechanism. For ManualLabeler interface, let's keep a Set of raw sockets.
-const connectedClients = new Set<WebSocket>();
+const connectedClients = new Set<any>();
 
 class HonoManualLabeler implements Labeler {
   private keypair: Secp256k1Keypair;
@@ -48,14 +44,16 @@ class HonoManualLabeler implements Labeler {
     const seq = Date.now(); // DB-less sequence
     const labels: any[] = [];
 
-    // Helper to create canonical object (Keys sorted: cts, neg, src, uri, val, ver)
+    // Helper to create label object
+    // @ipld/dag-cbor handles map sorting automatically (Canonical CBOR)
+    // So explicit key sorting here is good practice but dag-cbor ensures it.
     const createLabelObj = (val: string, neg: boolean) => ({
-      cts: now.toISOString(),
-      neg: neg,
+      ver: 1,
       src: this.did,
       uri: target.uri,
       val: val,
-      ver: 1,
+      neg: neg,
+      cts: now.toISOString(),
     });
 
     // Process Create (Positive Labels)
@@ -77,7 +75,7 @@ class HonoManualLabeler implements Labeler {
     console.log(`[${seq}] Broadcasting ${labels.length} labels to ${connectedClients.size} clients...`);
 
     const signedLabels = await Promise.all(labels.map(async (label) => {
-      const bytes = encoder.encode(label);
+      const bytes = encode(label);
       const sig = await this.keypair.sign(bytes);
       return { ...label, sig };
     }));
@@ -88,12 +86,14 @@ class HonoManualLabeler implements Labeler {
     };
 
     const header = { op: 1, t: "#labels" };
-    const headerBytes = encoder.encode(header);
-    const bodyBytes = encoder.encode(message);
+    // dag-cbor encode returns Uint8Array, explicitly compatible with Buffer
+    const headerBytes = encode(header);
+    const bodyBytes = encode(message);
     const buffer = Buffer.concat([headerBytes, bodyBytes]);
 
     connectedClients.forEach(client => {
-      if (client.readyState === 1) { // OPEN
+      // Hono's WSContext or ws.WebSocket both have readyState 1 (OPEN)
+      if (client.readyState === 1) {
         client.send(buffer);
       }
     });
