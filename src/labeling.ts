@@ -22,15 +22,26 @@ export async function processUser(did: string, labeler: LabelerServer, handle?: 
     const fortune = getDailyFortune(did);
     const now = getJstTime();
     const identifier = handle ? `${handle} (${did})` : did;
-    console.log(`[${now}] Processing ${identifier}, fortune: ${fortune}`);
 
-    const negate = calculateNegateList(fortune);
+    // Experiment: Apply ALL labels EXCEPT the selected fortune (Inverse Fortune)
+    const allFortunes = FORTUNES.map(f => f.val);
+    const fortunesToCreate = allFortunes.filter(v => v !== fortune);
+
+    console.log(`[${now}] Processing ${identifier}, applying 6 labels (excluding ${fortune}): ${fortunesToCreate.join(", ")}`);
+
+    const negate = [
+        fortune, // Negate the selected one
+        "testing123",
+        "testing",
+        "sample123",
+        "test",
+    ];
 
     try {
         await labeler.createLabels(
             { uri: did },
             {
-                create: [fortune],
+                create: fortunesToCreate,
                 negate: negate,
             }
         );
