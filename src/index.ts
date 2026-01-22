@@ -43,10 +43,10 @@ async function startNotificationPolling() {
 }
 
 (async () => {
-  // Wait for Fastify plugin registration to complete
+  console.log("[INIT] Waiting for ready...");
   await labeler.app.ready();
+  console.log("[INIT] Ready completed, adding route...");
 
-  // Add custom route after plugins are ready
   labeler.app.post("/xrpc/com.atproto.moderation.createReport", async (req, reply) => {
     const { reasonType, reason, subject } = req.body as any;
     console.log("Received Report:", { reasonType, reason, subject });
@@ -83,12 +83,12 @@ async function startNotificationPolling() {
     };
   });
 
-  // Start server after route is registered
+  console.log("[INIT] Route added, starting server...");
   labeler.start({ port: PORT, host: "0.0.0.0" }, (error) => {
     if (error) {
       console.error("Failed to start server", error);
     } else {
-      console.log(`Labeler running on port ${PORT}`);
+      console.log(`[INIT] Server started on port ${PORT}`);
       startNotificationPolling();
     }
   });
