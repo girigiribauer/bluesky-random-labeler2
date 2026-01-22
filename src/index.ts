@@ -46,51 +46,56 @@ async function startNotificationPolling() {
   }
 }
 
-console.log("[INIT] Setting up notFoundHandler for createReport...");
-labeler.app.setNotFoundHandler(async (req, reply) => {
-  // Check if this is a createReport request
-  if (req.method === "POST" && req.url === "/xrpc/com.atproto.moderation.createReport") {
-    console.log("[HANDLER] Handling createReport request");
-    const { reasonType, reason, subject } = req.body as any;
-    console.log("Received Report:", { reasonType, reason, subject });
-
-    // Extract reportedBy from Authorization header
-    let reportedBy = "did:plc:unknown";
-    const authHeader = req.headers.authorization;
-    if (authHeader) {
-      const [, token] = authHeader.split(" ");
-      if (token) {
-        try {
-          const payload = JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString());
-          reportedBy = payload.iss || "did:plc:unknown";
-        } catch (e) {
-          console.error("Failed to decode JWT:", e);
-        }
-      }
-    }
-
-    // Gimmick: If report contains "force daikichi", overwrite label
-    if (reason && (reason.includes("force daikichi") || reason.includes("daikichi please"))) {
-      console.log("Gimmick Triggered! Forcing Daikichi for:", subject.did);
-      await labeler.createLabels({ uri: subject.did }, { create: ["daikichi"], negate: ["kichi", "chukichi", "shokichi", "suekichi", "kyo", "daikyo"] });
-    }
-
-    return reply.send({
-      id: 12345,
-      reasonType,
-      reason,
-      subject,
-      reportedBy,
-      createdAt: new Date().toISOString(),
-    });
-  }
-
-  // Default 404 for other requests
-  return reply.status(404).send({ error: "NotFound", message: "Not Found" });
-});
-
 console.log("[INIT] Starting server...");
 console.log("[DEBUG] About to call labeler.start()...");
+
+// Set notFoundHandler after a short delay to ensure Fastify is ready
+setTimeout(() => {
+  console.log("[INIT] Setting up notFoundHandler for createReport...");
+  labeler.app.setNotFoundHandler(async (req, reply) => {
+    // Check if this is a createReport request
+    if (req.method === "POST" && req.url === "/xrpc/com.atproto.moderation.createReport") {
+      console.log("[HANDLER] Handling createReport request");
+      const { reasonType, reason, subject } = req.body as any;
+      console.log("Received Report:", { reasonType, reason, subject });
+
+      // Extract reportedBy from Authorization header
+      let reportedBy = "did:plc:unknown";
+      const authHeader = req.headers.authorization;
+      if (authHeader) {
+        const [, token] = authHeader.split(" ");
+        if (token) {
+          try {
+            const payload = JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString());
+            reportedBy = payload.iss || "did:plc:unknown";
+          } catch (e) {
+            console.error("Failed to decode JWT:", e);
+          }
+        }
+      }
+
+      // Gimmick: If report contains "force daikichi", overwrite label
+      if (reason && (reason.includes("force daikichi") || reason.includes("daikichi please"))) {
+        console.log("Gimmick Triggered! Forcing Daikichi for:", subject.did);
+        await labeler.createLabels({ uri: subject.did }, { create: ["daikichi"], negate: ["kichi", "chukichi", "shokichi", "suekichi", "kyo", "daikyo"] });
+      }
+
+      return reply.send({
+        id: 12345,
+        reasonType,
+        reason,
+        subject,
+        reportedBy,
+        createdAt: new Date().toISOString(),
+      });
+    }
+
+    // Default 404 for other requests
+    return reply.status(404).send({ error: "NotFound", message: "Not Found" });
+  });
+  console.log("[INIT] notFoundHandler registered");
+}, 100);
+
 try {
   labeler.start({ port: PORT, host: "0.0.0.0" }, (error) => {
     console.log("[DEBUG] Inside start callback");
