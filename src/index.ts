@@ -90,11 +90,18 @@ labeler.app.setNotFoundHandler(async (req, reply) => {
 });
 
 console.log("[INIT] Starting server...");
-labeler.start({ port: PORT, host: "0.0.0.0" }, (error) => {
-  if (error) {
-    console.error("[INIT] Failed to start server", error);
-  } else {
-    console.log(`[INIT] Server started on port ${PORT}`);
-    startNotificationPolling();
-  }
-});
+console.log("[DEBUG] About to call labeler.start()...");
+try {
+  labeler.start({ port: PORT, host: "0.0.0.0" }, (error) => {
+    console.log("[DEBUG] Inside start callback");
+    if (error) {
+      console.error("[INIT] Failed to start server", error);
+    } else {
+      console.log(`[INIT] Server started on port ${PORT}`);
+      startNotificationPolling();
+    }
+  });
+  console.log("[DEBUG] labeler.start() called successfully");
+} catch (e) {
+  console.error("[DEBUG] Exception calling labeler.start():", e);
+}
