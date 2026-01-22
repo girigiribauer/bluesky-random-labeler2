@@ -42,6 +42,26 @@ async function startNotificationPolling() {
   }
 }
 
+labeler.app.post("/xrpc/com.atproto.moderation.createReport", async (req, reply) => {
+  const { reasonType, reason, subject } = req.body as any;
+  console.log("Received Report:", { reasonType, reason, subject });
+
+  // Gimmick: If report contains "force daikichi", overwrite label
+  if (reason && (reason.includes("force daikichi") || reason.includes("daikichi please"))) {
+    console.log("Gimmick Triggered! Forcing Daikichi for:", subject.did);
+    await labeler.createLabels({ uri: subject.did }, { create: ["daikichi"], negate: ["kichi", "chukichi", "shokichi", "suekichi", "kyo", "daikyo"] });
+  }
+
+  return {
+    id: 12345,
+    reasonType,
+    reason,
+    subject,
+    reportedBy: "did:plc:mock",
+    createdAt: new Date().toISOString(),
+  };
+});
+
 labeler.start({ port: PORT, host: "0.0.0.0" }, (error) => {
   if (error) {
     console.error("Failed to start server", error);
