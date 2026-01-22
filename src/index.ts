@@ -46,6 +46,16 @@ async function startNotificationPolling() {
   }
 }
 
+console.log("[DEBUG] labeler object:", typeof labeler);
+console.log("[DEBUG] Attempting to access labeler.app...");
+try {
+  console.log("[DEBUG] labeler.app type:", typeof labeler.app);
+  console.log("[DEBUG] labeler.app exists:", !!labeler.app);
+  console.log("[DEBUG] labeler.app.register type:", typeof labeler.app.register);
+} catch (e) {
+  console.error("[DEBUG] Error accessing labeler.app:", e);
+}
+
 console.log("[INIT] Registering custom route plugin...");
 labeler.app.register(async (fastify) => {
   console.log("[PLUGIN] Inside register callback, adding route...");
