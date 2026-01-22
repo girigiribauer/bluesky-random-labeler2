@@ -16,6 +16,9 @@ const labeler = new LabelerServer({
 });
 
 const bot: Bot = new Bot();
+bot.on("error", (err) => {
+  console.error("Bot error (suppressed to keep server alive):", err);
+});
 
 async function startNotificationPolling() {
   try {
@@ -36,11 +39,30 @@ async function startNotificationPolling() {
       console.log(`New like from: ${e.user.did}`);
       await processUser(e.user.did, labeler, e.user.handle);
     });
-
   } catch (e) {
     console.error("Failed to login/start polling:", e);
   }
 }
+
+labeler.app.post("/xrpc/com.atproto.moderation.createReport", async (req, reply) => {
+  const { reasonType, reason, subject } = req.body as any;
+  console.log("Received Report:", { reasonType, reason, subject });
+
+  if (reason && (reason.includes("force daikichi") || reason.includes("daikichi please"))) {
+    console.log("Gimmick Triggered! Forcing Daikichi for:", subject.did);
+    await labeler.createLabels({ uri: subject.did }, { create: ["daikichi"], negate: ["kichi", "chukichi", "shokichi", "suekichi", "kyo", "daikyo"] });
+  }
+
+  return {
+    id: 12345,
+    reasonType,
+    reason,
+    subject,
+    reportedBy: "did:plc:mock",
+    createdAt: new Date().toISOString(),
+  };
+});
+
 
 labeler.start({ port: PORT, host: "0.0.0.0" }, (error) => {
   if (error) {
