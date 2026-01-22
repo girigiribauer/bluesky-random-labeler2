@@ -46,12 +46,11 @@ async function startNotificationPolling() {
   }
 }
 
-console.log("[INIT] Starting server...");
-console.log("[DEBUG] About to call labeler.start()...");
+(async () => {
+  console.log("[INIT] Waiting for Fastify to be ready...");
+  await labeler.app.ready();
+  console.log("[INIT] Fastify ready, setting up notFoundHandler...");
 
-// Set notFoundHandler after a short delay to ensure Fastify is ready
-setTimeout(() => {
-  console.log("[INIT] Setting up notFoundHandler for createReport...");
   labeler.app.setNotFoundHandler(async (req, reply) => {
     // Check if this is a createReport request
     if (req.method === "POST" && req.url === "/xrpc/com.atproto.moderation.createReport") {
@@ -93,12 +92,9 @@ setTimeout(() => {
     // Default 404 for other requests
     return reply.status(404).send({ error: "NotFound", message: "Not Found" });
   });
-  console.log("[INIT] notFoundHandler registered");
-}, 100);
 
-try {
+  console.log("[INIT] Starting server...");
   labeler.start({ port: PORT, host: "0.0.0.0" }, (error) => {
-    console.log("[DEBUG] Inside start callback");
     if (error) {
       console.error("[INIT] Failed to start server", error);
     } else {
@@ -106,7 +102,4 @@ try {
       startNotificationPolling();
     }
   });
-  console.log("[DEBUG] labeler.start() called successfully");
-} catch (e) {
-  console.error("[DEBUG] Exception calling labeler.start():", e);
-}
+})();
