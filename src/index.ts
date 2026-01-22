@@ -44,6 +44,12 @@ async function startNotificationPolling() {
   }
 }
 
+// Debug: Log all requests to check visibility
+labeler.app.addHook("onRequest", async (req, reply) => {
+  console.log(`[REQUEST] ${req.method} ${req.url}`);
+});
+
+// Implement com.atproto.moderation.createReport
 labeler.app.post("/xrpc/com.atproto.moderation.createReport", async (req, reply) => {
   const { reasonType, reason, subject } = req.body as any;
   console.log("Received Report:", { reasonType, reason, subject });
