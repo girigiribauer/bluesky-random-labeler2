@@ -17,6 +17,10 @@ const labeler = new LabelerServer({
 
 const bot: Bot = new Bot();
 
+bot.on("error", (err) => {
+  console.error("Bot error (suppressed to keep server alive):", err);
+});
+
 async function startNotificationPolling() {
   try {
     await bot.login({
