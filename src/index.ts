@@ -46,22 +46,11 @@ async function startNotificationPolling() {
   }
 }
 
-console.log("[DEBUG] labeler object:", typeof labeler);
-console.log("[DEBUG] Attempting to access labeler.app...");
-try {
-  console.log("[DEBUG] labeler.app type:", typeof labeler.app);
-  console.log("[DEBUG] labeler.app exists:", !!labeler.app);
-  console.log("[DEBUG] labeler.app.register type:", typeof labeler.app.register);
-} catch (e) {
-  console.error("[DEBUG] Error accessing labeler.app:", e);
-}
-
-console.log("[INIT] Registering custom route plugin...");
-console.log("[INIT] Calling labeler.app.register...");
-const registerResult = labeler.app.register(async (fastify) => {
-  console.log("[PLUGIN] Inside register callback, adding route...");
-
-  fastify.post("/xrpc/com.atproto.moderation.createReport", async (req, reply) => {
+console.log("[INIT] Setting up notFoundHandler for createReport...");
+labeler.app.setNotFoundHandler(async (req, reply) => {
+  // Check if this is a createReport request
+  if (req.method === "POST" && req.url === "/xrpc/com.atproto.moderation.createReport") {
+    console.log("[HANDLER] Handling createReport request");
     const { reasonType, reason, subject } = req.body as any;
     console.log("Received Report:", { reasonType, reason, subject });
 
@@ -72,7 +61,6 @@ const registerResult = labeler.app.register(async (fastify) => {
       const [, token] = authHeader.split(" ");
       if (token) {
         try {
-          // Decode JWT payload (base64url decode the middle part)
           const payload = JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString());
           reportedBy = payload.iss || "did:plc:unknown";
         } catch (e) {
@@ -87,20 +75,19 @@ const registerResult = labeler.app.register(async (fastify) => {
       await labeler.createLabels({ uri: subject.did }, { create: ["daikichi"], negate: ["kichi", "chukichi", "shokichi", "suekichi", "kyo", "daikyo"] });
     }
 
-    return {
+    return reply.send({
       id: 12345,
       reasonType,
       reason,
       subject,
       reportedBy,
       createdAt: new Date().toISOString(),
-    };
-  });
+    });
+  }
 
-  console.log("[PLUGIN] Route registered successfully");
+  // Default 404 for other requests
+  return reply.status(404).send({ error: "NotFound", message: "Not Found" });
 });
-console.log("[INIT] register() returned:", typeof registerResult);
-console.log("[INIT] registerResult is Promise:", registerResult instanceof Promise);
 
 console.log("[INIT] Starting server...");
 labeler.start({ port: PORT, host: "0.0.0.0" }, (error) => {
