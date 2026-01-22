@@ -57,7 +57,8 @@ try {
 }
 
 console.log("[INIT] Registering custom route plugin...");
-labeler.app.register(async (fastify) => {
+console.log("[INIT] Calling labeler.app.register...");
+const registerResult = labeler.app.register(async (fastify) => {
   console.log("[PLUGIN] Inside register callback, adding route...");
 
   fastify.post("/xrpc/com.atproto.moderation.createReport", async (req, reply) => {
@@ -98,6 +99,8 @@ labeler.app.register(async (fastify) => {
 
   console.log("[PLUGIN] Route registered successfully");
 });
+console.log("[INIT] register() returned:", typeof registerResult);
+console.log("[INIT] registerResult is Promise:", registerResult instanceof Promise);
 
 console.log("[INIT] Starting server...");
 labeler.start({ port: PORT, host: "0.0.0.0" }, (error) => {
