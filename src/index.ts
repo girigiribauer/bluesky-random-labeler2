@@ -46,11 +46,55 @@ async function startNotificationPolling() {
   }
 }
 
-labeler.start({ port: PORT, host: "0.0.0.0" }, (error) => {
-  if (error) {
-    console.error("Failed to start server", error);
-  } else {
-    console.log(`Labeler running on port ${PORT}`);
-    startNotificationPolling();
-  }
-});
+// User suggestion: Use setTimeout to wait for internal registration to complete
+// This allows us to inject custom routes before starting the server
+setTimeout(() => {
+  console.log("[INIT] Attempting to register custom routes via setTimeout workaround...");
+
+  labeler.app.post("/xrpc/com.atproto.moderation.createReport", async (req, reply) => {
+    console.log("[HANDLER] Handling createReport request");
+    const { reasonType, reason, subject } = req.body as any;
+    console.log("Received Report:", { reasonType, reason, subject });
+
+    // Extract reportedBy from Authorization header
+    let reportedBy = "did:plc:unknown";
+    const authHeader = req.headers.authorization;
+    if (authHeader) {
+      const [, token] = authHeader.split(" ");
+      if (token) {
+        try {
+          const payload = JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString());
+          reportedBy = payload.iss || "did:plc:unknown";
+        } catch (e) {
+          console.error("Failed to decode JWT:", e);
+        }
+      }
+    }
+
+    // Gimmick: If report contains "force daikichi", overwrite label
+    if (reason && (reason.includes("force daikichi") || reason.includes("daikichi please"))) {
+      console.log("Gimmick Triggered! Forcing Daikichi for:", subject.did);
+      await labeler.createLabels({ uri: subject.did }, { create: ["daikichi"], negate: ["kichi", "chukichi", "shokichi", "suekichi", "kyo", "daikyo"] });
+    }
+
+    return {
+      id: 12345,
+      reasonType,
+      reason,
+      subject,
+      reportedBy,
+      createdAt: new Date().toISOString(),
+    };
+  });
+
+  console.log("[INIT] Custom route added. Starting server...");
+
+  labeler.start({ port: PORT, host: "0.0.0.0" }, (error) => {
+    if (error) {
+      console.error("Failed to start server", error);
+    } else {
+      console.log(`Labeler running on port ${PORT}`);
+      startNotificationPolling();
+    }
+  });
+}, 3000); // Wait 3 seconds to ensure internal registration is done (as per reference implementation)
