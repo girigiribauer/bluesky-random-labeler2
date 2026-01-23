@@ -1,7 +1,8 @@
 import dotenv from "dotenv";
 import { LabelerServer } from "@skyware/labeler";
 import { Bot } from "@skyware/bot";
-import { processUser } from "./labeling.js";
+import { processUser, overwriteFortune } from "./labeling.js";
+import { FORTUNES } from "./fortune.js";
 import { startMidnightScheduler } from "./scheduler.js";
 
 dotenv.config();
@@ -71,10 +72,23 @@ setTimeout(() => {
       }
     }
 
-    // Gimmick: If report contains "force daikichi", overwrite label
-    if (reason && (reason.includes("force daikichi") || reason.includes("daikichi please"))) {
-      console.log("Gimmick Triggered! Forcing Daikichi for:", subject.did);
-      await labeler.createLabels({ uri: subject.did }, { create: ["daikichi"], negate: ["kichi", "chukichi", "shokichi", "suekichi", "kyo", "daikyo"] });
+    const GIMMICK_KEYWORDS = FORTUNES
+      .map(f => ({ val: f.val, keywords: [f.val, f.label] }))
+      .sort((a, b) => {
+        const maxLenA = Math.max(...a.keywords.map(k => k.length));
+        const maxLenB = Math.max(...b.keywords.map(k => k.length));
+        return maxLenB - maxLenA;
+      });
+
+    if (reason) {
+      for (const gimmick of GIMMICK_KEYWORDS) {
+        if (gimmick.keywords.some(k => reason.includes(k))) {
+          console.log(`Gimmick Triggered! Forcing ${gimmick.val} for:`, subject.did);
+
+          await overwriteFortune(subject.did, gimmick.val, labeler);
+          break;
+        }
+      }
     }
 
     return {
