@@ -36,7 +36,7 @@ pub async fn start_polling(pool: DbPool, keypair: Arc<Secp256k1Keypair>) -> Resu
                     last_seen_at = Some(t);
                 }
             }
-            Err(e) => {
+            Err(_e) => {
                 // eprintln!("Polling error: {}", e);
             }
         }

@@ -4,7 +4,7 @@ use crate::crypto::sign_label;
 use atrium_crypto::keypair::Secp256k1Keypair;
 use atrium_api::com::atproto::label::defs::LabelData;
 use atrium_api::types::string::{Datetime, Did};
-use chrono::Utc;
+use chrono::{Utc, SubsecRound};
 use anyhow::Result;
 
 pub async fn process_user(did: &str, handle: Option<&str>, pool: &DbPool, keypair: &Secp256k1Keypair, labeler_did: &str) -> Result<()> {

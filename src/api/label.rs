@@ -8,6 +8,7 @@ use crate::config::config;
 use crate::crypto::sign_label;
 use atrium_crypto::keypair::Secp256k1Keypair;
 use atrium_api::types::string::{Did, Datetime};
+use chrono::SubsecRound;
 
 #[derive(Clone)]
 pub struct AppState {
