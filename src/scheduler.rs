@@ -35,7 +35,7 @@ pub async fn run_optimized_batch(pool: DbPool) -> Result<()> {
     loop {
         let resp = agent.api.app.bsky.graph.get_followers(
             atrium_api::app::bsky::graph::get_followers::ParametersData {
-                actor: atrium_api::types::string::Did::new(actor.to_string()).unwrap().into(), // AtIdentifier
+                actor: atrium_api::types::string::AtIdentifier::new(actor.to_string()).expect("Invalid identifier").into(), // Support Handle or DID
                 cursor: cursor.clone(),
                 limit: Some(100.try_into().unwrap()),
             }.into()
