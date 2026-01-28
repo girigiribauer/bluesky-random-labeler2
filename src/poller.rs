@@ -13,10 +13,14 @@ use atrium_api::agent::atp_agent::store::MemorySessionStore;
 
 pub async fn start_polling(pool: DbPool, keypair: Arc<Secp256k1Keypair>) -> Result<()> {
     let conf = config();
+    println!("Poller config loaded: DID={}, Handle={:?}, DB_PATH={}, PwdExists={}",
+        conf.labeler_did, conf.handle, conf.db_path, conf.labeler_password.is_some());
     let agent = AtpAgent::new(ReqwestClient::new("https://bsky.social"), MemorySessionStore::default());
 
     if let Some(pwd) = &conf.labeler_password {
-        agent.login(conf.handle.as_deref().unwrap_or(&conf.labeler_did), pwd).await?;
+        let identifier = conf.handle.as_deref().unwrap_or(&conf.labeler_did);
+        println!("Attempting login with identifier: '{}'", identifier);
+        agent.login(identifier, pwd).await?;
         println!("Bot logged in.");
     } else {
         println!("No password provided, skipping bot login (polling will fail).");
