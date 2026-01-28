@@ -1,5 +1,5 @@
 use sha2::{Sha256, Digest};
-use chrono::{DateTime, Utc, FixedOffset};
+use chrono::{Utc, FixedOffset};
 
 #[derive(Debug, Clone)]
 pub struct FortuneDef {

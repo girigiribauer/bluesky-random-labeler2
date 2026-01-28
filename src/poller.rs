@@ -61,7 +61,6 @@ async fn check_notifications(
          }.into()
     ).await?;
 
-    let mut new_last_seen = last_seen_at.clone();
     let mut max_indexed_at = last_seen_at.clone();
 
     for notif in &resp.notifications {

@@ -5,7 +5,7 @@ use crate::config::config;
 use crate::db::DbPool;
 use crate::labeling::{process_user, negate_user};
 use crate::crypto::create_keypair;
-use std::sync::Arc;
+
 use sqlx::Row;
 
 use atrium_api::agent::atp_agent::store::MemorySessionStore;
@@ -35,7 +35,11 @@ pub async fn run_optimized_batch(pool: DbPool) -> Result<()> {
     loop {
         let resp = agent.api.app.bsky.graph.get_followers(
             atrium_api::app::bsky::graph::get_followers::ParametersData {
-                actor: atrium_api::types::string::AtIdentifier::new(actor.to_string()).expect("Invalid identifier").into(), // Support Handle or DID
+                actor: if actor.starts_with("did:") {
+                    atrium_api::types::string::AtIdentifier::Did(atrium_api::types::string::Did::new(actor.to_string()).expect("Invalid DID"))
+                } else {
+                    atrium_api::types::string::AtIdentifier::Handle(atrium_api::types::string::Handle::new(actor.to_string()).expect("Invalid Handle"))
+                }.into(),
                 cursor: cursor.clone(),
                 limit: Some(100.try_into().unwrap()),
             }.into()

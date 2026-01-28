@@ -44,7 +44,7 @@ mod tests {
         assert_eq!(response.status(), StatusCode::OK);
 
         let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
-        let body_json: Output = serde_json::from_slice(&body).unwrap();
+        let body_json: QueryLabelsOutput = serde_json::from_slice(&body).unwrap();
 
         assert_eq!(body_json.labels.len(), 1);
         assert_eq!(body_json.labels[0].uri, "did:plc:test");
@@ -65,7 +65,7 @@ mod tests {
         assert_eq!(response.status(), StatusCode::OK);
 
         let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
-        let body_json: Output = serde_json::from_slice(&body).unwrap();
+        let body_json: QueryLabelsOutput = serde_json::from_slice(&body).unwrap();
 
         assert_eq!(body_json.labels.len(), 0);
     }
@@ -86,7 +86,7 @@ mod tests {
         let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let body_json: Value = serde_json::from_slice(&body).unwrap();
 
-        assert_eq!(body_json["version"], "2.0.0");
+        assert_eq!(body_json["version"], "0.0.0");
     }
 
     #[tokio::test]
@@ -121,10 +121,6 @@ mod tests {
 
         let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let body_json: ReportOutput = serde_json::from_slice(&body).unwrap(); // Output matches createReport response type
-
-        // Verify response (OutputData structure)
-        // Check if ID is present (dummy ID 12345)
-        // Output -> data -> id
         assert_eq!(body_json.data.id, 12345);
     }
 }

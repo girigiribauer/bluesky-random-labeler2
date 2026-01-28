@@ -1,5 +1,5 @@
 use atrium_api::com::atproto::label::defs::LabelData;
-use atrium_crypto::keypair::{Keypair, Secp256k1Keypair};
+use atrium_crypto::keypair::Secp256k1Keypair;
 use anyhow::Result;
 
 pub fn sign_label(label: &mut LabelData, keypair: &Secp256k1Keypair) -> Result<()> {

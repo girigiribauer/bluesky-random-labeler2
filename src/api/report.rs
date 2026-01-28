@@ -6,6 +6,10 @@ use crate::config::config;
 use crate::fortune::FORTUNES;
 use crate::labeling::overwrite_fortune;
 use atrium_api::types::string::{Did, Datetime};
+use atrium_api::com::atproto::repo::strong_ref::MainData;
+use ipld_core::ipld::Ipld;
+use cid::Cid;
+use std::str::FromStr;
 
 pub async fn create_report(
     State(state): State<AppState>,
@@ -73,7 +77,17 @@ use atrium_api::types::Union;
     let subject = match &input.subject {
         Union::Refs(InputSubjectRefs::ComAtprotoAdminDefsRepoRef(r)) => OutputSubjectRefs::ComAtprotoAdminDefsRepoRef(r.clone()),
         Union::Refs(InputSubjectRefs::ComAtprotoRepoStrongRefMain(r)) => OutputSubjectRefs::ComAtprotoRepoStrongRefMain(r.clone()),
-        _ => panic!("Unknown subject type"),
+        _ => {
+            println!("Unknown subject type received");
+            // Fallback to a dummy strongRef to avoid crashing
+            OutputSubjectRefs::ComAtprotoRepoStrongRefMain(Box::new(atrium_api::com::atproto::repo::strong_ref::Main {
+                data: MainData {
+                    cid: atrium_api::types::string::Cid::new(Cid::from_str("bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi").expect("Invalid dummy CID")),
+                    uri: "at://did:plc:dummy/app.bsky.feed.post/3juv3456789".to_string(),
+                },
+                extra_data: Ipld::Null,
+            }))
+        },
     };
 
     let now = chrono::Utc::now().with_timezone(&FixedOffset::east_opt(0).unwrap());

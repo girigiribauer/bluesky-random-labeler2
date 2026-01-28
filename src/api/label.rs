@@ -5,7 +5,7 @@ use atrium_api::com::atproto::label::defs::Label;
 use std::sync::Arc;
 use crate::db::{get_labels, DbPool};
 use crate::config::config;
-use crate::crypto::{sign_label, create_keypair};
+use crate::crypto::sign_label;
 use atrium_crypto::keypair::Secp256k1Keypair;
 use atrium_api::types::string::{Did, Datetime};
 

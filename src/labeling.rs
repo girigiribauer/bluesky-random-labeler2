@@ -66,12 +66,10 @@ async fn upsert_label(uri: &str, val: &str, neg: bool, src: &str, pool: &DbPool,
     Ok(())
 }
 
-#[cfg(test)]
-mod tests {
+    #[cfg(test)]
+    mod tests {
     use super::*;
     use crate::db::{init_db, get_labels};
-    use crate::crypto::create_keypair;
-    use std::sync::Arc;
 
     #[tokio::test]
     async fn test_process_user_logic() -> Result<()> {

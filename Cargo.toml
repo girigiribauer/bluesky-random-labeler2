@@ -40,6 +40,8 @@ serde_qs = "0.15.0"
 rand = { version = "0.8", features = ["std", "std_rng"] }
 tower-http = { version = "0.6.8", features = ["fs", "trace"] }
 tower = { version = "0.5.3", features = ["util"] }
+ipld-core = "0.4.2"
+cid = "0.11.1"
 
 [dev-dependencies]
 serde_json = "1.0"
