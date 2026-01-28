@@ -1,0 +1,115 @@
+use sqlx::{sqlite::SqlitePoolOptions, Pool, Sqlite, Row};
+use anyhow::Result;
+use std::fs;
+use std::path::Path;
+
+pub type DbPool = Pool<Sqlite>;
+
+pub async fn init_db(db_path: &str) -> Result<DbPool> {
+    if let Some(parent) = Path::new(db_path).parent() {
+        if !parent.exists() {
+            fs::create_dir_all(parent)?;
+        }
+    }
+
+    let db_url = format!("sqlite:{}?mode=rwc", db_path);
+
+    let pool = SqlitePoolOptions::new()
+        .max_connections(5)
+        .connect(&db_url)
+        .await?;
+
+    sqlx::query(
+        r#"
+        CREATE TABLE IF NOT EXISTS labels (
+          uri TEXT NOT NULL,
+          val TEXT NOT NULL,
+          cts TEXT NOT NULL,
+          neg INTEGER DEFAULT 0,
+          src TEXT,
+          PRIMARY KEY (uri, val)
+        );
+        "#
+    )
+    .execute(&pool)
+    .await?;
+
+    Ok(pool)
+}
+
+pub async fn upsert_label(pool: &DbPool, uri: &str, val: &str, cts: &str, neg: bool, src: &str) -> Result<()> {
+    let neg_int = if neg { 1 } else { 0 };
+    sqlx::query("INSERT OR REPLACE INTO labels (uri, val, cts, neg, src) VALUES (?, ?, ?, ?, ?)")
+        .bind(uri)
+        .bind(val)
+        .bind(cts)
+        .bind(neg_int)
+        .bind(src)
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
+pub async fn delete_label(pool: &DbPool, uri: &str) -> Result<()> {
+    sqlx::query("DELETE FROM labels WHERE uri = ?")
+        .bind(uri)
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
+#[derive(sqlx::FromRow)]
+pub struct LabelRow {
+    pub uri: String,
+    pub val: String,
+    pub cts: String,
+    pub neg: i32,
+    pub src: String,
+}
+
+pub async fn get_labels(pool: &DbPool, uri: &str) -> Result<Vec<LabelRow>> {
+    let rows = sqlx::query_as::<_, LabelRow>("SELECT uri, val, cts, neg, src FROM labels WHERE uri = ?")
+        .bind(uri)
+        .fetch_all(pool)
+        .await?;
+    Ok(rows)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_db_operations() -> Result<()> {
+        let pool = init_db(":memory:").await?;
+        let uri = "did:plc:test";
+        let val = "daikichi";
+        let cts = "2026-01-01T00:00:00Z";
+        let src = "did:plc:issuer";
+
+        upsert_label(&pool, uri, val, cts, false, src).await?;
+
+        let labels = get_labels(&pool, uri).await?;
+        assert_eq!(labels.len(), 1);
+        assert_eq!(labels[0].uri, uri);
+        assert_eq!(labels[0].val, val);
+        assert_eq!(labels[0].neg, 0);
+
+        let new_val = "chukichi";
+        upsert_label(&pool, uri, new_val, cts, false, src).await?;
+
+        let labels_updated = get_labels(&pool, uri).await?;
+        assert_eq!(labels_updated.len(), 2);
+
+        let neg_uri = "did:plc:negated";
+        upsert_label(&pool, neg_uri, "kyo", cts, true, src).await?;
+        let items = get_labels(&pool, neg_uri).await?;
+        assert_eq!(items[0].neg, 1);
+
+        delete_label(&pool, uri).await?;
+        let empty = get_labels(&pool, uri).await?;
+        assert_eq!(empty.len(), 0);
+
+        Ok(())
+    }
+}
