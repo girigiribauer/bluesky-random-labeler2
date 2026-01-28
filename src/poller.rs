@@ -15,8 +15,6 @@ pub async fn start_polling(pool: DbPool, keypair: Arc<Secp256k1Keypair>) -> Resu
     let conf = config();
     let agent = AtpAgent::new(ReqwestClient::new("https://bsky.social"), MemorySessionStore::default());
 
-    agent.login(&conf.labeler_did, &conf.signing_key_hex).await?;
-
     if let Some(pwd) = &conf.labeler_password {
         agent.login(conf.handle.as_deref().unwrap_or(&conf.labeler_did), pwd).await?;
         println!("Bot logged in.");

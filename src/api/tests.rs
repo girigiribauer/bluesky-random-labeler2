@@ -7,7 +7,8 @@ mod tests {
     };
     use tower::util::ServiceExt;
     use serde_json::Value;
-    use atrium_api::com::atproto::label::query_labels::Output;
+    use atrium_api::com::atproto::label::query_labels::Output as QueryLabelsOutput;
+    use atrium_api::com::atproto::moderation::create_report::Output as ReportOutput;
     use crate::api::router;
     use crate::api::label::AppState;
     use crate::db::init_db;
@@ -67,5 +68,63 @@ mod tests {
         let body_json: Output = serde_json::from_slice(&body).unwrap();
 
         assert_eq!(body_json.labels.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_health_check() {
+        let app = setup_app().await;
+
+        let req = Request::builder()
+            .uri("/xrpc/_health")
+            .body(Body::empty())
+            .unwrap();
+
+        let response = app.oneshot(req).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let body_json: Value = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(body_json["version"], "2.0.0");
+    }
+
+    #[tokio::test]
+    async fn test_create_report() {
+        // Ensure config is loaded or env vars set (Mocking env for test safety if not loaded)
+        std::env::set_var("LABELER_DID", "did:plc:test");
+        std::env::set_var("SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000");
+
+        let app = setup_app().await;
+
+        let payload = serde_json::json!({
+            "reasonType": "com.atproto.moderation.defs#reasonSpam",
+            "reason": "Test report with keyword: daikichi",
+            "subject": {
+                "$type": "com.atproto.repo.strongRef",
+                "uri": "at://did:plc:target/app.bsky.feed.post/3juv3456789",
+                "cid": "bafyreihT00000000000000000000000000000000000000000000000000"
+            }
+        });
+
+        let req = Request::builder()
+            .method("POST")
+            .uri("/xrpc/com.atproto.moderation.createReport")
+            .header("Content-Type", "application/json")
+            .body(Body::from(serde_json::to_vec(&payload).unwrap()))
+            .unwrap();
+
+        let response = app.oneshot(req).await.unwrap();
+
+        // Should be 200 OK even if logic runs
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let body_json: ReportOutput = serde_json::from_slice(&body).unwrap(); // Output matches createReport response type
+
+        // Verify response (OutputData structure)
+        // Check if ID is present (dummy ID 12345)
+        // Output -> data -> id
+        assert_eq!(body_json.data.id, 12345);
     }
 }

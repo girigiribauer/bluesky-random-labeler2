@@ -39,5 +39,6 @@ pub fn router(state: AppState) -> Router {
     Router::new()
         .route("/xrpc/com.atproto.label.queryLabels", get(label::query_labels))
         .route("/xrpc/com.atproto.moderation.createReport", post(report::create_report))
+        .route("/xrpc/_health", get(|| async { axum::Json(serde_json::json!({ "version": "0.0.0" })) }))
         .with_state(state)
 }

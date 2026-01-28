@@ -49,15 +49,25 @@ use atrium_api::types::Union;
 
             if let Some(did_str) = did {
                 println!("Gimmick Triggered! Forcing {} for: {}", val, did_str);
-                let _ = overwrite_fortune(
+                if let Err(e) = overwrite_fortune(
                     did_str,
                     val,
                     &state.pool,
                     &state.keypair,
                     &config().labeler_did
-                ).await;
+                ).await {
+                    eprintln!("Failed to overwrite fortune: {}", e);
+                } else {
+                    println!("Fortune overwritten successfully.");
+                }
+            } else {
+                println!("Gimmick: Failed to extract DID from subject.");
             }
+        } else {
+            println!("Gimmick: No matching fortune keyword found in reason: {}", reason);
         }
+    } else {
+        println!("Gimmick: No reason provided in report.");
     }
 
     let subject = match &input.subject {
