@@ -44,7 +44,7 @@ pub async fn negate_user(did: &str, pool: &DbPool, _keypair: &Secp256k1Keypair, 
 }
 
 async fn upsert_label(uri: &str, val: &str, neg: bool, src: &str, pool: &DbPool, keypair: &Secp256k1Keypair) -> Result<()> {
-    let now = Utc::now().with_timezone(&chrono::FixedOffset::east_opt(0).unwrap());
+    let now = Utc::now().with_timezone(&chrono::FixedOffset::east_opt(0).unwrap()).round_subsecs(3);
     let cts = Datetime::new(now);
 
     let mut label = LabelData {

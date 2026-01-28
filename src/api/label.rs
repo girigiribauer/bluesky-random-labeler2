@@ -34,7 +34,7 @@ pub async fn query_labels(
             let src = row.src;
 
             let cts_parsed = chrono::DateTime::parse_from_rfc3339(&cts_str)
-                .unwrap_or_else(|_| chrono::Utc::now().with_timezone(&chrono::FixedOffset::east_opt(0).unwrap()));
+                .unwrap_or_else(|_| chrono::Utc::now().with_timezone(&chrono::FixedOffset::east_opt(0).unwrap())).round_subsecs(3);
 
             let mut label_data = atrium_api::com::atproto::label::defs::LabelData {
                 cid: None,
