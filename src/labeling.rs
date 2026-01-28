@@ -56,7 +56,7 @@ async fn upsert_label(uri: &str, val: &str, neg: bool, src: &str, pool: &DbPool,
         src: Did::new(src.to_string()).expect("Invalid DID"), // Ensure config DID is valid
         uri: uri.to_string(),
         val: val.to_string(),
-        ver: Some(1),
+        ver: None,
     };
 
     sign_label(&mut label, keypair)?;

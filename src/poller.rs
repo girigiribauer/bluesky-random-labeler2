@@ -37,7 +37,7 @@ pub async fn start_polling(pool: DbPool, keypair: Arc<Secp256k1Keypair>) -> Resu
                 }
             }
             Err(e) => {
-                eprintln!("Polling error: {}", e);
+                // eprintln!("Polling error: {}", e);
             }
         }
         sleep(Duration::from_secs(10)).await;

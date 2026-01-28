@@ -45,7 +45,7 @@ pub async fn query_labels(
                 src: Did::new(src).unwrap_or_else(|_| Did::new(labeler_did.clone()).unwrap()),
                 uri,
                 val,
-                ver: Some(1),
+                ver: None,
             };
 
             if let Err(e) = sign_label(&mut label_data, &state.keypair) {
