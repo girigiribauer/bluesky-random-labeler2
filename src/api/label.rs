@@ -20,14 +20,19 @@ pub async fn query_labels(
     State(state): State<AppState>,
     QsQuery(params): QsQuery<Parameters>,
 ) -> Json<Output> {
+    let cursor = params.cursor.clone().and_then(|c| c.parse::<i64>().ok());
     let input = params.data;
     let mut labels = Vec::new();
     let labeler_did = &config().labeler_did;
+    let mut last_id = 0;
 
     for pattern in input.uri_patterns {
-        let rows = get_labels(&state.pool, &pattern).await.unwrap_or_else(|_| vec![]);
+        let rows = get_labels(&state.pool, &pattern, cursor, None).await.unwrap_or_else(|_| vec![]);
 
         for row in rows {
+            if row.id > last_id {
+                last_id = row.id;
+            }
             let uri = row.uri;
             let val = row.val;
             let cts_str = row.cts;
@@ -58,8 +63,10 @@ pub async fn query_labels(
         }
     }
 
+    let next_cursor = if last_id > 0 { Some(last_id.to_string()) } else { None };
+
     Json(OutputData {
-        cursor: None,
+        cursor: next_cursor,
         labels,
     }.into())
 }

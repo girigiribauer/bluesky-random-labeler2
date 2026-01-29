@@ -60,6 +60,7 @@ pub async fn delete_label(pool: &DbPool, uri: &str) -> Result<()> {
 
 #[derive(sqlx::FromRow)]
 pub struct LabelRow {
+    pub id: i64,
     pub uri: String,
     pub val: String,
     pub cts: String,
@@ -67,9 +68,16 @@ pub struct LabelRow {
     pub src: String,
 }
 
-pub async fn get_labels(pool: &DbPool, uri: &str) -> Result<Vec<LabelRow>> {
-    let rows = sqlx::query_as::<_, LabelRow>("SELECT uri, val, cts, neg, src FROM labels WHERE uri = ?")
+pub async fn get_labels(pool: &DbPool, uri: &str, cursor: Option<i64>, limit: Option<i64>) -> Result<Vec<LabelRow>> {
+    let limit = limit.unwrap_or(50);
+    let cursor = cursor.unwrap_or(0);
+
+    let rows = sqlx::query_as::<_, LabelRow>(
+        "SELECT rowid as id, uri, val, cts, neg, src FROM labels WHERE uri = ? AND rowid > ? ORDER BY rowid ASC LIMIT ?"
+    )
         .bind(uri)
+        .bind(cursor)
+        .bind(limit)
         .fetch_all(pool)
         .await?;
     Ok(rows)
@@ -89,7 +97,7 @@ mod tests {
 
         upsert_label(&pool, uri, val, cts, false, src).await?;
 
-        let labels = get_labels(&pool, uri).await?;
+        let labels = get_labels(&pool, uri, None, None).await?;
         assert_eq!(labels.len(), 1);
         assert_eq!(labels[0].uri, uri);
         assert_eq!(labels[0].val, val);
@@ -98,16 +106,16 @@ mod tests {
         let new_val = "chukichi";
         upsert_label(&pool, uri, new_val, cts, false, src).await?;
 
-        let labels_updated = get_labels(&pool, uri).await?;
+        let labels_updated = get_labels(&pool, uri, None, None).await?;
         assert_eq!(labels_updated.len(), 2);
 
         let neg_uri = "did:plc:negated";
         upsert_label(&pool, neg_uri, "kyo", cts, true, src).await?;
-        let items = get_labels(&pool, neg_uri).await?;
+        let items = get_labels(&pool, neg_uri, None, None).await?;
         assert_eq!(items[0].neg, 1);
 
         delete_label(&pool, uri).await?;
-        let empty = get_labels(&pool, uri).await?;
+        let empty = get_labels(&pool, uri, None, None).await?;
         assert_eq!(empty.len(), 0);
 
         Ok(())

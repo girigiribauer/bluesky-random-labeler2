@@ -82,7 +82,7 @@ async fn upsert_label(uri: &str, val: &str, neg: bool, src: &str, pool: &DbPool,
 
         process_user(target_did, None, &pool, &keypair, labeler_did).await?;
 
-        let labels = get_labels(&pool, target_did).await?;
+        let labels = get_labels(&pool, target_did, None, None).await?;
         assert!(!labels.is_empty(), "Labels should be created");
 
         let positives: Vec<_> = labels.iter().filter(|l| l.neg == 0).collect();
