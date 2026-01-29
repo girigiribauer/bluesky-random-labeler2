@@ -94,15 +94,8 @@ async fn upsert_label(
 
     // Create Label struct for broadcast
     let label = Label {
-        cid: label_data.cid,
-        cts: label_data.cts.as_str().to_string(),
-        exp: label_data.exp.map(|d| d.as_str().to_string()),
-        neg: label_data.neg,
-        sig: label_data.sig,
-        src: label_data.src.as_str().to_string(),
-        uri: label_data.uri,
-        val: label_data.val,
-        ver: label_data.ver,
+        data: label_data.clone(),
+        extra_data: ipld_core::ipld::Ipld::Null,
     };
 
     // Broadcast

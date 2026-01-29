@@ -55,11 +55,11 @@ async fn check_notifications(
     last_seen_at: &Option<String>,
     tx: &broadcast::Sender<(i64, Vec<Label>)>
 ) -> Result<Option<String>> {
-    let limit = 50;
+    let limit: i32 = 50;
     let resp = agent.api.app.bsky.notification.list_notifications(
          atrium_api::app::bsky::notification::list_notifications::ParametersData {
              cursor: None,
-             limit: Some(limit.try_into().unwrap()),
+             limit: Some((limit as u8).try_into().unwrap()),
              priority: None,
              reasons: None,
              seen_at: None,

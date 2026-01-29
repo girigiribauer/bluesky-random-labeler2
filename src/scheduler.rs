@@ -44,7 +44,7 @@ pub async fn run_optimized_batch(pool: DbPool, tx: broadcast::Sender<(i64, Vec<L
                     atrium_api::types::string::AtIdentifier::Handle(atrium_api::types::string::Handle::new(actor.to_string()).expect("Invalid Handle"))
                 }.into(),
                 cursor: cursor.clone(),
-                limit: Some(100.try_into().unwrap()),
+                limit: Some((100 as u8).try_into().unwrap()),
             }.into()
         ).await?;
 

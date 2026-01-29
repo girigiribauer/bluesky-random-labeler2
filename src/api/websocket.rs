@@ -2,11 +2,12 @@ use axum::{
     extract::{ws::{Message, WebSocket, WebSocketUpgrade}, State},
     response::Response,
 };
-use tokio::sync::broadcast;
+use atrium_api::com::atproto::label::subscribe_labels::{Labels, LabelsData, Message as SubscribeMessage};
 use atrium_api::com::atproto::label::defs::Label;
-use atrium_api::com::atproto::label::subscribe_labels::{Labels, Message as SubscribeMessage};
+use tokio::sync::broadcast;
 use serde::{Deserialize, Serialize};
 use crate::api::AppState;
+use ipld_core::ipld::Ipld;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct StreamHeader {
@@ -33,8 +34,11 @@ async fn handle_socket(mut socket: WebSocket, tx: broadcast::Sender<(i64, Vec<La
 
         // Construct Body
         let body = SubscribeMessage::Labels(Box::new(Labels {
-            seq,
-            labels,
+            data: LabelsData {
+                seq,
+                labels,
+            },
+            extra_data: Ipld::Null,
         }));
 
         // Serialize

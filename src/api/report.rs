@@ -58,7 +58,8 @@ use atrium_api::types::Union;
                     val,
                     &state.pool,
                     &state.keypair,
-                    &config().labeler_did
+                    &config().labeler_did,
+                    &state.tx
                 ).await {
                     eprintln!("Failed to overwrite fortune: {}", e);
                 } else {

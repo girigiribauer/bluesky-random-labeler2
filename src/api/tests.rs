@@ -21,7 +21,11 @@ mod tests {
         let pool = init_db(":memory:").await.unwrap();
         let mut rng = OsRng;
         let keypair = Arc::new(Secp256k1Keypair::create(&mut rng));
-        let state = AppState { pool: pool.clone(), keypair: keypair.clone() };
+        let state = AppState {
+            pool: pool.clone(),
+            keypair: keypair.clone(),
+            tx: tokio::sync::broadcast::channel(100).0,
+        };
 
         // Pre-insert some data
         let now_str = chrono::Utc::now().to_rfc3339();
@@ -92,8 +96,10 @@ mod tests {
     #[tokio::test]
     async fn test_create_report() {
         // Ensure config is loaded or env vars set (Mocking env for test safety if not loaded)
-        std::env::set_var("LABELER_DID", "did:plc:test");
-        std::env::set_var("SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000");
+        unsafe {
+            std::env::set_var("LABELER_DID", "did:plc:test");
+            std::env::set_var("SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000");
+        }
 
         let app = setup_app().await;
 
