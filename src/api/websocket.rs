@@ -19,13 +19,16 @@ pub async fn subscribe_labels(
     ws: WebSocketUpgrade,
     State(state): State<AppState>,
 ) -> Response {
+    println!("WS: subscribeLabels request received");
     ws.on_upgrade(move |socket| handle_socket(socket, state.tx))
 }
 
 async fn handle_socket(mut socket: WebSocket, tx: broadcast::Sender<(i64, Vec<Label>)>) {
+    println!("WS: Connection established");
     let mut rx = tx.subscribe();
 
     while let Ok((seq, labels)) = rx.recv().await {
+        println!("WS: Received broadcast seq={}, labels_count={}", seq, labels.len());
         // Construct Header
         let header = StreamHeader {
             t: "#labels".to_string(),
@@ -51,11 +54,15 @@ async fn handle_socket(mut socket: WebSocket, tx: broadcast::Sender<(i64, Vec<La
             payload.extend(body_bytes);
 
             // Send
-            if socket.send(Message::Binary(payload)).await.is_err() {
+            if let Err(e) = socket.send(Message::Binary(payload)).await {
+                println!("WS: Failed to send message: {}", e);
                 break;
+            } else {
+                println!("WS: Sent message to client");
             }
         } else {
             eprintln!("Failed to serialize label update");
         }
     }
+    println!("WS: Connection closed");
 }

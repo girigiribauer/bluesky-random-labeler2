@@ -99,7 +99,10 @@ async fn upsert_label(
     };
 
     // Broadcast
-    let _ = tx.send((rowid, vec![label]));
+    match tx.send((rowid, vec![label])) {
+        Ok(count) => println!("Broadcaster: To {} listeners. Seq={}, Val={}", count, rowid, val),
+        Err(_) => println!("Broadcaster: No listeners active. Seq={}, Val={}", rowid, val),
+    }
 
     Ok(())
 }
