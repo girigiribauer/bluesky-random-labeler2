@@ -36,13 +36,13 @@ async fn handle_socket(mut socket: WebSocket, tx: broadcast::Sender<(i64, Vec<La
         };
 
         // Construct Body
-        let body = SubscribeMessage::Labels(Box::new(Labels {
+        let body = Labels {
             data: LabelsData {
                 seq,
                 labels,
             },
             extra_data: Ipld::Null,
-        }));
+        };
 
         // Serialize
         if let (Ok(header_bytes), Ok(body_bytes)) = (
