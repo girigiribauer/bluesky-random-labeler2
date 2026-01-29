@@ -6,6 +6,8 @@ mod labeling;
 mod crypto;
 mod poller;
 mod scheduler;
+#[cfg(test)]
+mod tests_serialization;
 
 use crate::config::config;
 use crate::db::init_db;
