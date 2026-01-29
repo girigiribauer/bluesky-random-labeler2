@@ -37,9 +37,9 @@ pub async fn init_db(db_path: &str) -> Result<DbPool> {
     Ok(pool)
 }
 
-pub async fn upsert_label(pool: &DbPool, uri: &str, val: &str, cts: &str, neg: bool, src: &str) -> Result<()> {
+pub async fn upsert_label(pool: &DbPool, uri: &str, val: &str, cts: &str, neg: bool, src: &str) -> Result<i64> {
     let neg_int = if neg { 1 } else { 0 };
-    sqlx::query("INSERT OR REPLACE INTO labels (uri, val, cts, neg, src) VALUES (?, ?, ?, ?, ?)")
+    let result = sqlx::query("INSERT OR REPLACE INTO labels (uri, val, cts, neg, src) VALUES (?, ?, ?, ?, ?)")
         .bind(uri)
         .bind(val)
         .bind(cts)
@@ -47,7 +47,7 @@ pub async fn upsert_label(pool: &DbPool, uri: &str, val: &str, cts: &str, neg: b
         .bind(src)
         .execute(pool)
         .await?;
-    Ok(())
+    Ok(result.last_insert_rowid())
 }
 
 pub async fn delete_label(pool: &DbPool, uri: &str) -> Result<()> {

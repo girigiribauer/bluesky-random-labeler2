@@ -26,23 +26,27 @@ async fn main() -> anyhow::Result<()> {
     let pool = init_db(&conf.db_path).await?;
 
     let keypair = Arc::new(create_keypair(&conf.signing_key_hex)?);
+    let (tx, _rx) = tokio::sync::broadcast::channel(1000);
 
     let pool_clone = pool.clone();
     let keypair_clone = keypair.clone();
+    let tx_for_poller = tx.clone();
     tokio::spawn(async move {
-        if let Err(e) = poller::start_polling(pool_clone, keypair_clone).await {
+        if let Err(e) = poller::start_polling(pool_clone, keypair_clone, tx_for_poller).await {
             eprintln!("Poller failed: {}", e);
         }
     });
 
     let sched_pool = pool.clone();
+    let sched_tx = tx.clone();
     let sched = JobScheduler::new().await?;
 
     sched.add(
         Job::new_async("0 0 15 * * *", move |_uuid, _l| {
             let p = sched_pool.clone();
+            let tx = sched_tx.clone();
             Box::pin(async move {
-                if let Err(e) = scheduler::run_optimized_batch(p).await {
+                if let Err(e) = scheduler::run_optimized_batch(p, tx).await {
                     eprintln!("Scheduler batch failed: {}", e);
                 }
             })
@@ -53,6 +57,7 @@ async fn main() -> anyhow::Result<()> {
     let state = AppState {
         pool,
         keypair,
+        tx,
     };
 
     let app = router(state);

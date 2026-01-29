@@ -11,10 +11,15 @@ use atrium_crypto::keypair::Secp256k1Keypair;
 
 use atrium_api::agent::atp_agent::store::MemorySessionStore;
 
-pub async fn start_polling(pool: DbPool, keypair: Arc<Secp256k1Keypair>) -> Result<()> {
+use tokio::sync::broadcast;
+use atrium_api::com::atproto::label::defs::Label;
+
+pub async fn start_polling(
+    pool: DbPool,
+    keypair: Arc<Secp256k1Keypair>,
+    tx: broadcast::Sender<(i64, Vec<Label>)>
+) -> Result<()> {
     let conf = config();
-    println!("Poller config loaded: DID={}, Handle={:?}, DB_PATH={}, PwdExists={}",
-        conf.labeler_did, conf.handle, conf.db_path, conf.labeler_password.is_some());
     let agent = AtpAgent::new(ReqwestClient::new("https://bsky.social"), MemorySessionStore::default());
 
     if let Some(pwd) = &conf.labeler_password {
@@ -30,14 +35,13 @@ pub async fn start_polling(pool: DbPool, keypair: Arc<Secp256k1Keypair>) -> Resu
     let mut last_seen_at: Option<String> = None;
 
     loop {
-        match check_notifications(&agent, &pool, &keypair, &last_seen_at).await {
+        match check_notifications(&agent, &pool, &keypair, &last_seen_at, &tx).await {
             Ok(new_last_seen) => {
                 if let Some(t) = new_last_seen {
                     last_seen_at = Some(t);
                 }
             }
             Err(_e) => {
-                // eprintln!("Polling error: {}", e);
             }
         }
         sleep(Duration::from_secs(10)).await;
@@ -48,7 +52,8 @@ async fn check_notifications(
     agent: &AtpAgent<MemorySessionStore, ReqwestClient>,
     pool: &DbPool,
     keypair: &Secp256k1Keypair,
-    last_seen_at: &Option<String>
+    last_seen_at: &Option<String>,
+    tx: &broadcast::Sender<(i64, Vec<Label>)>
 ) -> Result<Option<String>> {
     let limit = 50;
     let resp = agent.api.app.bsky.notification.list_notifications(
@@ -80,8 +85,7 @@ async fn check_notifications(
                 let did = &notif.author.did;
                 let handle = notif.author.handle.as_str();
 
-                // Process
-                 process_user(did.as_str(), Some(handle), pool, keypair, &config().labeler_did).await?;
+                process_user(did.as_str(), Some(handle), pool, keypair, &config().labeler_did, tx).await?;
             }
              _ => {}
         }

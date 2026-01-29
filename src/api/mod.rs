@@ -9,9 +9,21 @@ use serde::de::DeserializeOwned;
 
 pub mod label;
 pub mod report;
+pub mod websocket;
 mod tests;
 
 pub struct QsQuery<T>(pub T);
+
+use crate::api::label::AppState;
+
+pub fn router(state: AppState) -> Router {
+    Router::new()
+        .route("/xrpc/com.atproto.label.queryLabels", get(label::query_labels))
+        .route("/xrpc/com.atproto.label.subscribeLabels", get(websocket::subscribe_labels))
+        .route("/xrpc/com.atproto.moderation.createReport", post(report::create_report))
+        .route("/xrpc/_health", get(|| async { axum::Json(serde_json::json!({ "version": "0.0.0" })) }))
+        .with_state(state)
+}
 
 #[async_trait]
 impl<S, T> FromRequestParts<S> for QsQuery<T>
@@ -31,14 +43,4 @@ where
             }
         }
     }
-}
-
-use crate::api::label::AppState;
-
-pub fn router(state: AppState) -> Router {
-    Router::new()
-        .route("/xrpc/com.atproto.label.queryLabels", get(label::query_labels))
-        .route("/xrpc/com.atproto.moderation.createReport", post(report::create_report))
-        .route("/xrpc/_health", get(|| async { axum::Json(serde_json::json!({ "version": "0.0.0" })) }))
-        .with_state(state)
 }

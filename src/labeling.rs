@@ -2,12 +2,20 @@ use crate::db::{DbPool, upsert_label as db_upsert, delete_label as db_delete};
 use crate::fortune::{get_daily_fortune, FORTUNES};
 use crate::crypto::sign_label;
 use atrium_crypto::keypair::Secp256k1Keypair;
-use atrium_api::com::atproto::label::defs::LabelData;
+use atrium_api::com::atproto::label::defs::{Label, LabelData};
 use atrium_api::types::string::{Datetime, Did};
 use chrono::{Utc, SubsecRound};
 use anyhow::Result;
+use tokio::sync::broadcast;
 
-pub async fn process_user(did: &str, handle: Option<&str>, pool: &DbPool, keypair: &Secp256k1Keypair, labeler_did: &str) -> Result<()> {
+pub async fn process_user(
+    did: &str,
+    handle: Option<&str>,
+    pool: &DbPool,
+    keypair: &Secp256k1Keypair,
+    labeler_did: &str,
+    tx: &broadcast::Sender<(i64, Vec<Label>)>
+) -> Result<()> {
     let fortune_val = get_daily_fortune(did);
     println!("Processing {} ({:?}), fortune: {}", did, handle, fortune_val);
 
@@ -16,38 +24,59 @@ pub async fn process_user(did: &str, handle: Option<&str>, pool: &DbPool, keypai
         .filter(|&v| v != fortune_val)
         .collect();
 
-    upsert_label(did, fortune_val, false, labeler_did, pool, keypair).await?;
+    upsert_label(did, fortune_val, false, labeler_did, pool, keypair, tx).await?;
 
     for neg_val in negate_list {
-        upsert_label(did, neg_val, true, labeler_did, pool, keypair).await?;
+        upsert_label(did, neg_val, true, labeler_did, pool, keypair, tx).await?;
     }
 
     Ok(())
 }
 
-pub async fn overwrite_fortune(did: &str, fortune_val: &str, pool: &DbPool, keypair: &Secp256k1Keypair, labeler_did: &str) -> Result<()> {
+pub async fn overwrite_fortune(
+    did: &str,
+    fortune_val: &str,
+    pool: &DbPool,
+    keypair: &Secp256k1Keypair,
+    labeler_did: &str,
+    tx: &broadcast::Sender<(i64, Vec<Label>)>
+) -> Result<()> {
     let negate_list: Vec<&str> = FORTUNES.iter()
         .map(|f| f.val)
         .filter(|&v| v != fortune_val)
         .collect();
 
-    upsert_label(did, fortune_val, false, labeler_did, pool, keypair).await?;
+    upsert_label(did, fortune_val, false, labeler_did, pool, keypair, tx).await?;
     for neg_val in negate_list {
-        upsert_label(did, neg_val, true, labeler_did, pool, keypair).await?;
+        upsert_label(did, neg_val, true, labeler_did, pool, keypair, tx).await?;
     }
     Ok(())
 }
 
-pub async fn negate_user(did: &str, pool: &DbPool, _keypair: &Secp256k1Keypair, _labeler_did: &str) -> Result<()> {
+pub async fn negate_user(
+    did: &str,
+    pool: &DbPool,
+    _keypair: &Secp256k1Keypair,
+    _labeler_did: &str,
+    _tx: &broadcast::Sender<(i64, Vec<Label>)>
+) -> Result<()> {
     db_delete(pool, did).await?;
     Ok(())
 }
 
-async fn upsert_label(uri: &str, val: &str, neg: bool, src: &str, pool: &DbPool, keypair: &Secp256k1Keypair) -> Result<()> {
+async fn upsert_label(
+    uri: &str,
+    val: &str,
+    neg: bool,
+    src: &str,
+    pool: &DbPool,
+    keypair: &Secp256k1Keypair,
+    tx: &broadcast::Sender<(i64, Vec<Label>)>
+) -> Result<()> {
     let now = Utc::now().with_timezone(&chrono::FixedOffset::east_opt(0).unwrap()).round_subsecs(3);
     let cts = Datetime::new(now);
 
-    let mut label = LabelData {
+    let mut label_data = LabelData {
         cid: None,
         cts: cts.clone(),
         exp: None,
@@ -59,15 +88,31 @@ async fn upsert_label(uri: &str, val: &str, neg: bool, src: &str, pool: &DbPool,
         ver: None,
     };
 
-    sign_label(&mut label, keypair)?;
+    sign_label(&mut label_data, keypair)?;
 
-    db_upsert(pool, uri, val, &cts.as_ref().to_rfc3339(), neg, src).await?;
+    let rowid = db_upsert(pool, uri, val, &cts.as_ref().to_rfc3339(), neg, src).await?;
+
+    // Create Label struct for broadcast
+    let label = Label {
+        cid: label_data.cid,
+        cts: label_data.cts.as_str().to_string(),
+        exp: label_data.exp.map(|d| d.as_str().to_string()),
+        neg: label_data.neg,
+        sig: label_data.sig,
+        src: label_data.src.as_str().to_string(),
+        uri: label_data.uri,
+        val: label_data.val,
+        ver: label_data.ver,
+    };
+
+    // Broadcast
+    let _ = tx.send((rowid, vec![label]));
 
     Ok(())
 }
 
-    #[cfg(test)]
-    mod tests {
+#[cfg(test)]
+mod tests {
     use super::*;
     use crate::db::{init_db, get_labels};
 
@@ -79,8 +124,9 @@ async fn upsert_label(uri: &str, val: &str, neg: bool, src: &str, pool: &DbPool,
         let keypair = Secp256k1Keypair::create(&mut rng);
         let labeler_did = "did:plc:labeler";
         let target_did = "did:plc:target";
+        let (tx, _rx) = broadcast::channel(100);
 
-        process_user(target_did, None, &pool, &keypair, labeler_did).await?;
+        process_user(target_did, None, &pool, &keypair, labeler_did, &tx).await?;
 
         let labels = get_labels(&pool, target_did, None, None).await?;
         assert!(!labels.is_empty(), "Labels should be created");

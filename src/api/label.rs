@@ -14,6 +14,7 @@ use chrono::SubsecRound;
 pub struct AppState {
     pub pool: DbPool,
     pub keypair: Arc<Secp256k1Keypair>,
+    pub tx: tokio::sync::broadcast::Sender<(i64, Vec<Label>)>,
 }
 
 pub async fn query_labels(
