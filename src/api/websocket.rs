@@ -2,7 +2,7 @@ use axum::{
     extract::{ws::{Message, WebSocket, WebSocketUpgrade}, State},
     response::Response,
 };
-use atrium_api::com::atproto::label::subscribe_labels::{Labels, LabelsData, Message as SubscribeMessage};
+use atrium_api::com::atproto::label::subscribe_labels::{Labels, LabelsData};
 use atrium_api::com::atproto::label::defs::Label;
 use tokio::sync::broadcast;
 use serde::{Deserialize, Serialize};

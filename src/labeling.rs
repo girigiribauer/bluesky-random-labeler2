@@ -4,7 +4,7 @@ use crate::crypto::sign_label;
 use atrium_crypto::keypair::Secp256k1Keypair;
 use atrium_api::com::atproto::label::defs::{Label, LabelData};
 use atrium_api::types::string::{Datetime, Did};
-use chrono::{Utc, SubsecRound};
+use chrono::Utc;
 use anyhow::Result;
 use tokio::sync::broadcast;
 
@@ -73,8 +73,9 @@ async fn upsert_label(
     keypair: &Secp256k1Keypair,
     tx: &broadcast::Sender<(i64, Vec<Label>)>
 ) -> Result<()> {
-    let now = Utc::now().with_timezone(&chrono::FixedOffset::east_opt(0).unwrap()).round_subsecs(3);
-    let cts = Datetime::new(now);
+use std::str::FromStr;
+    let now_str = Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
+    let cts = Datetime::from_str(&now_str).expect("Invalid timestamp");
 
     let mut label_data = LabelData {
         cid: None,
@@ -85,7 +86,7 @@ async fn upsert_label(
         src: Did::new(src.to_string()).expect("Invalid DID"), // Ensure config DID is valid
         uri: uri.to_string(),
         val: val.to_string(),
-        ver: None,
+        ver: Some(1),
     };
 
     sign_label(&mut label_data, keypair)?;
