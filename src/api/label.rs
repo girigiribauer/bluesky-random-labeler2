@@ -21,6 +21,14 @@ pub async fn query_labels(
     QsQuery(params): QsQuery<Parameters>,
 ) -> Json<Output> {
     let cursor = params.cursor.clone().and_then(|c| c.parse::<i64>().ok());
+
+    // Debug logging
+    println!("REQ queryLabels: uriPatterns={:?}, cursor={:?}, limit={:?}",
+        params.data.uri_patterns,
+        params.cursor,
+        params.limit
+    );
+
     let input = params.data;
     let mut labels = Vec::new();
     let labeler_did = &config().labeler_did;
@@ -64,6 +72,8 @@ pub async fn query_labels(
     }
 
     let next_cursor = if last_id > 0 { Some(last_id.to_string()) } else { None };
+
+    println!("RES queryLabels: count={}, next_cursor={:?}", labels.len(), next_cursor);
 
     Json(OutputData {
         cursor: next_cursor,
