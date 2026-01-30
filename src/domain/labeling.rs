@@ -19,6 +19,20 @@ pub async fn assign_fortune(
     tx: &broadcast::Sender<(i64, Vec<Label>)>
 ) -> Result<()> {
     let current_labels = db_get_labels(pool, did, None, None).await?;
+
+    // DEBUG LOGGING START
+    tracing::info!(did, count = current_labels.len(), "DEBUG: Checking existing labels");
+    for label in &current_labels {
+        tracing::info!(
+            did,
+            val = %label.val,
+            neg = label.neg,
+            fixed = ?label.is_fixed,
+            cts = %label.cts,
+            "DEBUG: Found label row"
+        );
+    }
+    // DEBUG LOGGING END
     let _now_str = Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true); // Same format as in upsert
     if let Some(fixed_label) = current_labels.iter().find(|l| l.is_fixed.unwrap_or(0) == 1 && l.neg == 0) {
         if let Ok(fixed_date) = chrono::DateTime::parse_from_rfc3339(&fixed_label.cts) {
