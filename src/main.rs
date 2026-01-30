@@ -1,19 +1,9 @@
-mod api;
-mod config;
-mod db;
-mod fortune;
-mod labeling;
-mod crypto;
-mod poller;
-mod scheduler;
-#[cfg(test)]
-mod tests_serialization;
-
-use crate::config::config;
-use crate::db::init_db;
-use crate::api::router;
-use crate::api::label::AppState;
-use crate::crypto::create_keypair;
+use bluesky_random_labeler2::config::config;
+use bluesky_random_labeler2::db::init_db;
+use bluesky_random_labeler2::api::router;
+use bluesky_random_labeler2::state::AppState;
+use bluesky_random_labeler2::crypto::create_keypair;
+use bluesky_random_labeler2::{poller, scheduler};
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio_cron_scheduler::{Job, JobScheduler};
@@ -23,7 +13,7 @@ async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
 
     let conf = config();
-    println!("Starting Bluesky Random Labeler on port {}", conf.port);
+    tracing::info!(port = conf.port, "Starting Bluesky Random Labeler");
 
     let pool = init_db(&conf.db_path).await?;
 
@@ -35,7 +25,7 @@ async fn main() -> anyhow::Result<()> {
     let tx_for_poller = tx.clone();
     tokio::spawn(async move {
         if let Err(e) = poller::start_polling(pool_clone, keypair_clone, tx_for_poller).await {
-            eprintln!("Poller failed: {}", e);
+            tracing::error!(error = ?e, "Poller failed");
         }
     });
 
@@ -49,7 +39,7 @@ async fn main() -> anyhow::Result<()> {
             let tx = sched_tx.clone();
             Box::pin(async move {
                 if let Err(e) = scheduler::run_optimized_batch(p, tx).await {
-                    eprintln!("Scheduler batch failed: {}", e);
+                    tracing::error!(error = ?e, "Scheduler batch failed");
                 }
             })
         })?
@@ -65,7 +55,7 @@ async fn main() -> anyhow::Result<()> {
     let app = router(state);
     let addr = format!("0.0.0.0:{}", conf.port);
     let listener = TcpListener::bind(&addr).await?;
-    println!("Server bound to {}", addr);
+    tracing::info!(address = %addr, "Server bound");
 
     axum::serve(listener, app).await?;
 

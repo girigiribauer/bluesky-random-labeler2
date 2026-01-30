@@ -2,20 +2,13 @@ use axum::{Json, extract::State};
 use crate::api::QsQuery;
 use atrium_api::com::atproto::label::query_labels::{Parameters, Output, OutputData};
 use atrium_api::com::atproto::label::defs::Label;
-use std::sync::Arc;
-use crate::db::{get_labels, DbPool};
+use crate::db::get_labels;
 use crate::config::config;
 use crate::crypto::sign_label;
-use atrium_crypto::keypair::Secp256k1Keypair;
 use atrium_api::types::string::{Did, Datetime};
 use chrono::SubsecRound;
-
-#[derive(Clone)]
-pub struct AppState {
-    pub pool: DbPool,
-    pub keypair: Arc<Secp256k1Keypair>,
-    pub tx: tokio::sync::broadcast::Sender<(i64, Vec<Label>)>,
-}
+use crate::state::AppState;
+use tracing;
 
 pub async fn query_labels(
     State(state): State<AppState>,
@@ -23,12 +16,7 @@ pub async fn query_labels(
 ) -> Json<Output> {
     let cursor = params.cursor.clone().and_then(|c| c.parse::<i64>().ok());
 
-    // Debug logging
-    println!("REQ queryLabels: uriPatterns={:?}, cursor={:?}, limit={:?}",
-        params.data.uri_patterns,
-        params.cursor,
-        params.limit
-    );
+    tracing::debug!(?params.data.uri_patterns, ?params.cursor, ?params.limit, "REQ queryLabels");
 
     let input = params.data;
     let mut labels = Vec::new();
@@ -36,7 +24,7 @@ pub async fn query_labels(
     let mut last_id = 0;
 
     for pattern in input.uri_patterns {
-        let rows = get_labels(&state.pool, &pattern, cursor, None).await.unwrap_or_else(|_| vec![]);
+        let rows = get_labels(&state.pool, &pattern, cursor, input.limit.map(|l| u8::from(l).into())).await.unwrap_or_else(|_| vec![]);
 
         for row in rows {
             if row.id > last_id {
@@ -64,7 +52,7 @@ pub async fn query_labels(
             };
 
             if let Err(e) = sign_label(&mut label_data, &state.keypair) {
-                eprintln!("Failed to sign label: {}", e);
+                tracing::error!(error = ?e, "Failed to sign label");
                 continue;
             }
 
@@ -74,7 +62,7 @@ pub async fn query_labels(
 
     let next_cursor = if last_id > 0 { Some(last_id.to_string()) } else { None };
 
-    println!("RES queryLabels: count={}, next_cursor={:?}", labels.len(), next_cursor);
+    tracing::debug!(count = labels.len(), ?next_cursor, "RES queryLabels");
 
     Json(OutputData {
         cursor: next_cursor,

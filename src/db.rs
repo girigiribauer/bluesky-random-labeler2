@@ -34,17 +34,24 @@ pub async fn init_db(db_path: &str) -> Result<DbPool> {
     .execute(&pool)
     .await?;
 
+    // カラム追加は2回目以降エラーになるが、エラーを無視して続ける（重複していたら追加されない）
+    let _ = sqlx::query("ALTER TABLE labels ADD COLUMN is_fixed INTEGER DEFAULT 0")
+        .execute(&pool)
+        .await;
+
     Ok(pool)
 }
 
-pub async fn upsert_label(pool: &DbPool, uri: &str, val: &str, cts: &str, neg: bool, src: &str) -> Result<i64> {
+pub async fn upsert_label(pool: &DbPool, uri: &str, val: &str, cts: &str, neg: bool, src: &str, is_fixed: bool) -> Result<i64> {
     let neg_int = if neg { 1 } else { 0 };
-    let result = sqlx::query("INSERT OR REPLACE INTO labels (uri, val, cts, neg, src) VALUES (?, ?, ?, ?, ?)")
+    let fixed_int = if is_fixed { 1 } else { 0 };
+    let result = sqlx::query("INSERT OR REPLACE INTO labels (uri, val, cts, neg, src, is_fixed) VALUES (?, ?, ?, ?, ?, ?)")
         .bind(uri)
         .bind(val)
         .bind(cts)
         .bind(neg_int)
         .bind(src)
+        .bind(fixed_int)
         .execute(pool)
         .await?;
     Ok(result.last_insert_rowid())
@@ -66,6 +73,7 @@ pub struct LabelRow {
     pub cts: String,
     pub neg: i32,
     pub src: String,
+    pub is_fixed: Option<i32>,
 }
 
 pub async fn get_labels(pool: &DbPool, uri: &str, cursor: Option<i64>, limit: Option<i64>) -> Result<Vec<LabelRow>> {
@@ -73,7 +81,7 @@ pub async fn get_labels(pool: &DbPool, uri: &str, cursor: Option<i64>, limit: Op
     let cursor = cursor.unwrap_or(0);
 
     let rows = sqlx::query_as::<_, LabelRow>(
-        "SELECT rowid as id, uri, val, cts, neg, src FROM labels WHERE uri = ? AND rowid > ? ORDER BY rowid ASC LIMIT ?"
+        "SELECT rowid as id, uri, val, cts, neg, src, is_fixed FROM labels WHERE uri = ? AND rowid > ? ORDER BY rowid ASC LIMIT ?"
     )
         .bind(uri)
         .bind(cursor)
@@ -95,22 +103,24 @@ mod tests {
         let cts = "2026-01-01T00:00:00Z";
         let src = "did:plc:issuer";
 
-        upsert_label(&pool, uri, val, cts, false, src).await?;
+        upsert_label(&pool, uri, val, cts, false, src, false).await?;
 
         let labels = get_labels(&pool, uri, None, None).await?;
         assert_eq!(labels.len(), 1);
         assert_eq!(labels[0].uri, uri);
         assert_eq!(labels[0].val, val);
         assert_eq!(labels[0].neg, 0);
+        assert_eq!(labels[0].is_fixed.unwrap_or(0), 0);
 
         let new_val = "chukichi";
-        upsert_label(&pool, uri, new_val, cts, false, src).await?;
+        upsert_label(&pool, uri, new_val, cts, false, src, true).await?;
 
         let labels_updated = get_labels(&pool, uri, None, None).await?;
         assert_eq!(labels_updated.len(), 2);
+        assert_eq!(labels_updated[1].is_fixed.unwrap_or(0), 1);
 
         let neg_uri = "did:plc:negated";
-        upsert_label(&pool, neg_uri, "kyo", cts, true, src).await?;
+        upsert_label(&pool, neg_uri, "kyo", cts, true, src, false).await?;
         let items = get_labels(&pool, neg_uri, None, None).await?;
         assert_eq!(items[0].neg, 1);
 

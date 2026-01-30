@@ -14,7 +14,7 @@ mod tests;
 
 pub struct QsQuery<T>(pub T);
 
-use crate::api::label::AppState;
+use crate::state::AppState;
 
 pub fn router(state: AppState) -> Router {
     Router::new()

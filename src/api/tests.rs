@@ -10,7 +10,7 @@ mod tests {
     use atrium_api::com::atproto::label::query_labels::Output as QueryLabelsOutput;
     use atrium_api::com::atproto::moderation::create_report::Output as ReportOutput;
     use crate::api::router;
-    use crate::api::label::AppState;
+    use crate::state::AppState;
     use crate::db::init_db;
     use crate::db::upsert_label as db_upsert;
     use atrium_crypto::keypair::Secp256k1Keypair;
@@ -29,7 +29,7 @@ mod tests {
 
         // Pre-insert some data
         let now_str = chrono::Utc::now().to_rfc3339();
-        db_upsert(&pool, "did:plc:test", "fortune_val", &now_str, false, "did:plc:labeler").await.unwrap();
+        db_upsert(&pool, "did:plc:test", "fortune_val", &now_str, false, "did:plc:labeler", false).await.unwrap();
 
         router(state)
     }
@@ -48,7 +48,10 @@ mod tests {
         assert_eq!(response.status(), StatusCode::OK);
 
         let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
-        let body_json: QueryLabelsOutput = serde_json::from_slice(&body).unwrap();
+        let body_str = String::from_utf8(body.to_vec()).unwrap();
+        // println!("BODY: {}", body_str);
+
+        let body_json: QueryLabelsOutput = serde_json::from_str(&body_str).unwrap();
 
         assert_eq!(body_json.labels.len(), 1);
         assert_eq!(body_json.labels[0].uri, "did:plc:test");

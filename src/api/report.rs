@@ -1,15 +1,16 @@
 use axum::{Json, extract::State};
 use atrium_api::com::atproto::moderation::create_report::{Input, Output, OutputSubjectRefs, OutputData};
 use chrono::FixedOffset;
-use crate::api::label::AppState;
+use crate::state::AppState;
 use crate::config::config;
-use crate::fortune::FORTUNES;
-use crate::labeling::overwrite_fortune;
+use crate::domain::fortune::FORTUNES;
+use crate::domain::labeling::overwrite_fortune;
 use atrium_api::types::string::{Did, Datetime};
 use atrium_api::com::atproto::repo::strong_ref::MainData;
 use ipld_core::ipld::Ipld;
 use cid::Cid;
 use std::str::FromStr;
+use tracing;
 
 pub async fn create_report(
     State(state): State<AppState>,
@@ -23,15 +24,15 @@ use atrium_api::types::Union;
         let mut best_len = 0;
 
         for f in FORTUNES {
-            if reason.contains(f.val) {
-                if f.val.len() > best_len {
-                    best_match = Some(f.val);
-                    best_len = f.val.len();
+            if reason.contains(f.val.as_str()) {
+                if f.val.as_str().len() > best_len {
+                    best_match = Some(f.val.as_str());
+                    best_len = f.val.as_str().len();
                 }
             }
             if reason.contains(f.label) {
                 if f.label.len() > best_len {
-                    best_match = Some(f.val);
+                    best_match = Some(f.val.as_str());
                     best_len = f.label.len();
                 }
             }
@@ -52,7 +53,7 @@ use atrium_api::types::Union;
             };
 
             if let Some(did_str) = did {
-                println!("Gimmick Triggered! Forcing {} for: {}", val, did_str);
+                tracing::info!(val, did = did_str, "Gimmick Triggered! Forcing fortune");
                 if let Err(e) = overwrite_fortune(
                     did_str,
                     val,
@@ -61,25 +62,25 @@ use atrium_api::types::Union;
                     &config().labeler_did,
                     &state.tx
                 ).await {
-                    eprintln!("Failed to overwrite fortune: {}", e);
+                    tracing::error!(error = ?e, "Failed to overwrite fortune");
                 } else {
-                    println!("Fortune overwritten successfully.");
+                    tracing::info!("Fortune overwritten successfully");
                 }
             } else {
-                println!("Gimmick: Failed to extract DID from subject.");
+                tracing::warn!("Gimmick: Failed to extract DID from subject");
             }
         } else {
-            println!("Gimmick: No matching fortune keyword found in reason: {}", reason);
+            tracing::debug!(reason, "Gimmick: No matching fortune keyword found");
         }
     } else {
-        println!("Gimmick: No reason provided in report.");
+        tracing::debug!("Gimmick: No reason provided in report");
     }
 
     let subject = match &input.subject {
         Union::Refs(InputSubjectRefs::ComAtprotoAdminDefsRepoRef(r)) => OutputSubjectRefs::ComAtprotoAdminDefsRepoRef(r.clone()),
         Union::Refs(InputSubjectRefs::ComAtprotoRepoStrongRefMain(r)) => OutputSubjectRefs::ComAtprotoRepoStrongRefMain(r.clone()),
         _ => {
-            println!("Unknown subject type received");
+            tracing::warn!("Unknown subject type received");
             // Fallback to a dummy strongRef to avoid crashing
             OutputSubjectRefs::ComAtprotoRepoStrongRefMain(Box::new(atrium_api::com::atproto::repo::strong_ref::Main {
                 data: MainData {

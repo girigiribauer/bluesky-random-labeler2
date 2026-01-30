@@ -5,14 +5,12 @@ use std::time::Duration;
 use tokio::time::sleep;
 use crate::config::config;
 use crate::db::DbPool;
-use crate::labeling::process_user;
-use std::sync::Arc;
 use atrium_crypto::keypair::Secp256k1Keypair;
-
-use atrium_api::agent::atp_agent::store::MemorySessionStore;
-
 use tokio::sync::broadcast;
 use atrium_api::com::atproto::label::defs::Label;
+use crate::domain::labeling::assign_fortune;
+use std::sync::Arc;
+use atrium_api::agent::atp_agent::store::MemorySessionStore;
 
 pub async fn start_polling(
     pool: DbPool,
@@ -24,11 +22,11 @@ pub async fn start_polling(
 
     if let Some(pwd) = &conf.labeler_password {
         let identifier = conf.handle.as_deref().unwrap_or(&conf.labeler_did);
-        println!("Attempting login with identifier: '{}'", identifier);
+        tracing::info!(identifier, "Attempting login");
         agent.login(identifier, pwd).await?;
-        println!("Bot logged in.");
+        tracing::info!("Bot logged in");
     } else {
-        println!("No password provided, skipping bot login (polling will fail).");
+        tracing::warn!("No password provided, skipping bot login (polling will fail).");
         return Ok(());
     }
 
@@ -85,7 +83,7 @@ async fn check_notifications(
                 let did = &notif.author.did;
                 let handle = notif.author.handle.as_str();
 
-                process_user(did.as_str(), Some(handle), pool, keypair, &config().labeler_did, tx).await?;
+                assign_fortune(did.as_str(), Some(handle), pool, keypair, &config().labeler_did, tx).await?;
             }
              _ => {}
         }

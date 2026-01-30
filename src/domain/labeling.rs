@@ -1,14 +1,16 @@
-use crate::db::{DbPool, upsert_label as db_upsert, delete_label as db_delete};
-use crate::fortune::{get_daily_fortune, FORTUNES};
+use crate::db::{DbPool, upsert_label as db_upsert, delete_label as db_delete, get_labels as db_get_labels};
+use crate::domain::fortune::{get_daily_fortune, FORTUNES, Fortune};
+use std::str::FromStr;
 use crate::crypto::sign_label;
 use atrium_crypto::keypair::Secp256k1Keypair;
 use atrium_api::com::atproto::label::defs::{Label, LabelData};
 use atrium_api::types::string::{Datetime, Did};
 use chrono::Utc;
+use tracing;
 use anyhow::Result;
 use tokio::sync::broadcast;
 
-pub async fn process_user(
+pub async fn assign_fortune(
     did: &str,
     handle: Option<&str>,
     pool: &DbPool,
@@ -16,18 +18,33 @@ pub async fn process_user(
     labeler_did: &str,
     tx: &broadcast::Sender<(i64, Vec<Label>)>
 ) -> Result<()> {
-    let fortune_val = get_daily_fortune(did);
-    println!("Processing {} ({:?}), fortune: {}", did, handle, fortune_val);
+    let current_labels = db_get_labels(pool, did, None, None).await?;
+    let _now_str = Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true); // Same format as in upsert
+    if let Some(fixed_label) = current_labels.iter().find(|l| l.is_fixed.unwrap_or(0) == 1 && l.neg == 0) {
+        if let Ok(fixed_date) = chrono::DateTime::parse_from_rfc3339(&fixed_label.cts) {
+            let now = Utc::now();
+            let trunc_fixed = fixed_date.with_timezone(&chrono::FixedOffset::east_opt(9*3600).unwrap()).date_naive();
+            let trunc_now = now.with_timezone(&chrono::FixedOffset::east_opt(9*3600).unwrap()).date_naive();
 
-    let negate_list: Vec<&str> = FORTUNES.iter()
+            if trunc_fixed == trunc_now {
+                 tracing::info!(did, "Skipping assignment due to manual override (is_fixed=true)");
+                 return Ok(());
+            }
+        }
+    }
+
+    let fortune = get_daily_fortune(did);
+    tracing::info!(did, ?handle, %fortune, "Processing user");
+
+    let negate_list: Vec<Fortune> = FORTUNES.iter()
         .map(|f| f.val)
-        .filter(|&v| v != fortune_val)
+        .filter(|&v| v != fortune)
         .collect();
 
-    upsert_label(did, fortune_val, false, labeler_did, pool, keypair, tx).await?;
+    upsert_label(did, fortune.as_str(), false, labeler_did, pool, keypair, tx, false).await?;
 
-    for neg_val in negate_list {
-        upsert_label(did, neg_val, true, labeler_did, pool, keypair, tx).await?;
+    for neg_fortune in negate_list {
+        upsert_label(did, neg_fortune.as_str(), true, labeler_did, pool, keypair, tx, false).await?;
     }
 
     Ok(())
@@ -41,19 +58,25 @@ pub async fn overwrite_fortune(
     labeler_did: &str,
     tx: &broadcast::Sender<(i64, Vec<Label>)>
 ) -> Result<()> {
-    let negate_list: Vec<&str> = FORTUNES.iter()
+    // Validate fortune_val
+    let fortune = match Fortune::from_str(fortune_val) {
+        Ok(f) => f,
+        Err(_) => return Err(anyhow::anyhow!("Invalid fortune value: {}", fortune_val)),
+    };
+
+    let negate_list: Vec<Fortune> = FORTUNES.iter()
         .map(|f| f.val)
-        .filter(|&v| v != fortune_val)
+        .filter(|&v| v != fortune)
         .collect();
 
-    upsert_label(did, fortune_val, false, labeler_did, pool, keypair, tx).await?;
-    for neg_val in negate_list {
-        upsert_label(did, neg_val, true, labeler_did, pool, keypair, tx).await?;
+    upsert_label(did, fortune.as_str(), false, labeler_did, pool, keypair, tx, true).await?;
+    for neg_fortune in negate_list {
+        upsert_label(did, neg_fortune.as_str(), true, labeler_did, pool, keypair, tx, true).await?;
     }
     Ok(())
 }
 
-pub async fn negate_user(
+pub async fn revoke_fortune(
     did: &str,
     pool: &DbPool,
     _keypair: &Secp256k1Keypair,
@@ -71,7 +94,8 @@ async fn upsert_label(
     src: &str,
     pool: &DbPool,
     keypair: &Secp256k1Keypair,
-    tx: &broadcast::Sender<(i64, Vec<Label>)>
+    tx: &broadcast::Sender<(i64, Vec<Label>)>,
+    is_fixed: bool
 ) -> Result<()> {
 use std::str::FromStr;
     let now_str = Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
@@ -91,7 +115,7 @@ use std::str::FromStr;
 
     sign_label(&mut label_data, keypair)?;
 
-    let rowid = db_upsert(pool, uri, val, &cts.as_ref().to_rfc3339(), neg, src).await?;
+    let rowid = db_upsert(pool, uri, val, &cts.as_ref().to_rfc3339(), neg, src, is_fixed).await?;
 
     // Create Label struct for broadcast
     let label = Label {
@@ -101,8 +125,8 @@ use std::str::FromStr;
 
     // Broadcast
     match tx.send((rowid, vec![label])) {
-        Ok(count) => println!("Broadcaster: To {} listeners. Seq={}, Val={}", count, rowid, val),
-        Err(_) => println!("Broadcaster: No listeners active. Seq={}, Val={}", rowid, val),
+        Ok(count) => tracing::debug!(listeners = count, seq = rowid, val, "Broadcaster sent label"),
+        Err(_) => tracing::debug!(seq = rowid, val, "Broadcaster: No listeners active"),
     }
 
     Ok(())
@@ -114,7 +138,7 @@ mod tests {
     use crate::db::{init_db, get_labels};
 
     #[tokio::test]
-    async fn test_process_user_logic() -> Result<()> {
+    async fn test_assign_fortune_logic() -> Result<()> {
         let pool = init_db(":memory:").await?;
         use rand::rngs::OsRng;
         let mut rng = OsRng;
@@ -123,7 +147,7 @@ mod tests {
         let target_did = "did:plc:target";
         let (tx, _rx) = broadcast::channel(100);
 
-        process_user(target_did, None, &pool, &keypair, labeler_did, &tx).await?;
+        assign_fortune(target_did, None, &pool, &keypair, labeler_did, &tx).await?;
 
         let labels = get_labels(&pool, target_did, None, None).await?;
         assert!(!labels.is_empty(), "Labels should be created");
