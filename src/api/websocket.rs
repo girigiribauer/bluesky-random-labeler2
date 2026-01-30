@@ -19,50 +19,58 @@ pub async fn subscribe_labels(
     ws: WebSocketUpgrade,
     State(state): State<AppState>,
 ) -> Response {
-    println!("WS: subscribeLabels request received");
+    tracing::info!("WS: subscribeLabels request received");
     ws.on_upgrade(move |socket| handle_socket(socket, state.tx))
 }
 
 async fn handle_socket(mut socket: WebSocket, tx: broadcast::Sender<(i64, Vec<Label>)>) {
-    println!("WS: Connection established");
+    tracing::info!("WS: Connection established");
     let mut rx = tx.subscribe();
 
-    while let Ok((seq, labels)) = rx.recv().await {
-        println!("WS: Received broadcast seq={}, labels_count={}", seq, labels.len());
-        // Construct Header
-        let header = StreamHeader {
-            t: "#labels".to_string(),
-            op: 1, // Frame
-        };
+    loop {
+        match rx.recv().await {
+            Ok((seq, labels)) => {
+                tracing::debug!(seq, count = labels.len(), "WS: Received broadcast");
+                // Construct Header
+                let header = StreamHeader {
+                    t: "#labels".to_string(),
+                    op: 1, // Frame
+                };
 
-        // Construct Body
-        let body = Labels {
-            data: LabelsData {
-                seq,
-                labels,
-            },
-            extra_data: Ipld::Null,
-        };
+                // Construct Body
+                let body = Labels {
+                    data: LabelsData {
+                        seq,
+                        labels: labels.clone(),
+                    },
+                    extra_data: Ipld::Null,
+                };
 
-        // Serialize
-        if let (Ok(header_bytes), Ok(body_bytes)) = (
-            serde_ipld_dagcbor::to_vec(&header),
-            serde_ipld_dagcbor::to_vec(&body),
-        ) {
-            // Combine [Header][Body]
-            let mut payload = header_bytes;
-            payload.extend(body_bytes);
+                // Serialize
+                match (serde_ipld_dagcbor::to_vec(&header), serde_ipld_dagcbor::to_vec(&body)) {
+                    (Ok(header_bytes), Ok(body_bytes)) => {
+                        // Combine [Header][Body]
+                        let mut payload = header_bytes;
+                        payload.extend(body_bytes);
 
-            // Send
-            if let Err(e) = socket.send(Message::Binary(payload)).await {
-                println!("WS: Failed to send message: {}", e);
-                break;
-            } else {
-                println!("WS: Sent message to client");
+                        // Send
+                        if let Err(e) = socket.send(Message::Binary(payload)).await {
+                            tracing::warn!(error = ?e, "WS: Failed to send message");
+                            break;
+                        } else {
+                            tracing::debug!("WS: Sent message to client");
+                        }
+                    }
+                    _ => {
+                         tracing::error!("Failed to serialize label update");
+                    }
+                }
             }
-        } else {
-            eprintln!("Failed to serialize label update");
+            Err(e) => {
+                tracing::debug!(error = ?e, "WS: Broadcast channel closed or lagged");
+                break;
+            }
         }
     }
-    println!("WS: Connection closed");
+    tracing::info!("WS: Connection closed");
 }
