@@ -34,7 +34,8 @@ pub async fn assign_fortune(
     }
 
     let fortune = get_daily_fortune(did);
-    tracing::info!(did, ?handle, %fortune, "Processing user");
+    let handle_str = handle.unwrap_or("unknown");
+    tracing::info!(did, handle = %handle_str, %fortune, "Processing user");
 
     let negate_list: Vec<Fortune> = FORTUNES.iter()
         .map(|f| f.val)
