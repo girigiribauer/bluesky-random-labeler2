@@ -9,7 +9,8 @@ RUN apt-get update && \
 COPY Cargo.toml Cargo.lock ./
 
 RUN mkdir src && \
-    echo "fn main() {println!(\"dummy\");}" > src/main.rs
+    echo "fn main() {println!(\"dummy\");}" > src/main.rs && \
+    touch src/lib.rs
 
 RUN cargo build --release
 
