@@ -17,13 +17,13 @@ pub enum Fortune {
 impl Fortune {
     pub fn as_str(&self) -> &'static str {
         match self {
-            Fortune::Daikichi => "daikichi",
-            Fortune::Kichi => "kichi",
-            Fortune::Chukichi => "chukichi",
-            Fortune::Shokichi => "shokichi",
-            Fortune::Suekichi => "suekichi",
-            Fortune::Kyo => "kyo",
-            Fortune::Daikyo => "daikyo",
+            Fortune::Daikichi => "daikichi-new",
+            Fortune::Kichi => "kichi-new",
+            Fortune::Chukichi => "chukichi-new",
+            Fortune::Shokichi => "shokichi-new",
+            Fortune::Suekichi => "suekichi-new",
+            Fortune::Kyo => "kyo-new",
+            Fortune::Daikyo => "daikyo-new",
         }
     }
 }
@@ -39,13 +39,13 @@ impl FromStr for Fortune {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "daikichi" => Ok(Fortune::Daikichi),
-            "kichi" => Ok(Fortune::Kichi),
-            "chukichi" => Ok(Fortune::Chukichi),
-            "shokichi" => Ok(Fortune::Shokichi),
-            "suekichi" => Ok(Fortune::Suekichi),
-            "kyo" => Ok(Fortune::Kyo),
-            "daikyo" => Ok(Fortune::Daikyo),
+            "daikichi" | "daikichi-new" => Ok(Fortune::Daikichi),
+            "kichi" | "kichi-new" => Ok(Fortune::Kichi),
+            "chukichi" | "chukichi-new" => Ok(Fortune::Chukichi),
+            "shokichi" | "shokichi-new" => Ok(Fortune::Shokichi),
+            "suekichi" | "suekichi-new" => Ok(Fortune::Suekichi),
+            "kyo" | "kyo-new" => Ok(Fortune::Kyo),
+            "daikyo" | "daikyo-new" => Ok(Fortune::Daikyo),
             _ => Err(()),
         }
     }
