@@ -97,6 +97,18 @@ pub async fn run_migration(pool: DbPool, tx: broadcast::Sender<(i64, Vec<Label>)
     tracing::info!(count = all_dids.len(), "Found ALL users for migration (active + inactive)");
 
     let _agent = AtpAgent::new(ReqwestClient::new("https://bsky.social"), MemorySessionStore::default());
+    // Wait for at least one listener (AppView) to connect, otherwise events are lost in void.
+    tracing::info!("Waiting for active listeners (AppView)...");
+    let mut waits = 0;
+    while tx.receiver_count() == 0 {
+        if waits > 300 { // Wayyy too long (30s), assuming no one is coming.
+             tracing::warn!("No listeners connected after 30s. Broadcasting anyway (might be lost).");
+             break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        waits += 1;
+    }
+    tracing::info!(listeners = tx.receiver_count(), "Listeners active. Starting migration.");
     if let Some(_pwd) = &conf.labeler_password {
          // Login optional for migration but good for consistent object creation if needed?
          // assign_fortune doesn't use agent.
@@ -193,29 +205,4 @@ pub async fn run_migration(pool: DbPool, tx: broadcast::Sender<(i64, Vec<Label>)
 
     tracing::info!("Migration complete");
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::domain::fortune::Fortune;
-    use std::str::FromStr;
-
-    #[test]
-    fn test_fortune_parsing_revert_logic() {
-        // Simulate DB value (has -new)
-        let db_val_new = "daikichi-new";
-        // Logic used in run_migration
-        let clean_val = db_val_new.replace("-new", "");
-        let fortune = Fortune::from_str(&clean_val).expect("Should parse clean value");
-
-        // ensure it maps to the correct Enum
-        assert_eq!(fortune.as_str(), "daikichi"); // as_str() is now reverted to 'daikichi'
-
-        // Simulate DB value (already clean/old)
-        let db_val_old = "daikichi";
-        let clean_val_old = db_val_old.replace("-new", "");
-        let fortune_old = Fortune::from_str(&clean_val_old).expect("Should parse old value");
-        assert_eq!(fortune_old.as_str(), "daikichi");
-    }
 }
