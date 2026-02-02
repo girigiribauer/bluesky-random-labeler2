@@ -14,7 +14,7 @@ RUN mkdir src && \
 
 RUN cargo build --release
 
-RUN rm -f target/release/deps/bluesky_random_labeler2*
+RUN rm -f target/release/deps/bluesky_random_labeler2* target/release/deps/libomikuji* target/release/deps/omikuji*
 RUN rm src/main.rs
 
 COPY . .
