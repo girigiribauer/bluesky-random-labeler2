@@ -96,8 +96,8 @@ pub async fn run_migration(pool: DbPool, tx: broadcast::Sender<(i64, Vec<Label>)
     let active_dids: Vec<String> = rows.iter().map(|r| r.get("uri")).collect();
     tracing::info!(count = active_dids.len(), "Found active users for migration");
 
-    let agent = AtpAgent::new(ReqwestClient::new("https://bsky.social"), MemorySessionStore::default());
-    if let Some(pwd) = &conf.labeler_password {
+    let _agent = AtpAgent::new(ReqwestClient::new("https://bsky.social"), MemorySessionStore::default());
+    if let Some(_pwd) = &conf.labeler_password {
          // Login optional for migration but good for consistent object creation if needed?
          // assign_fortune doesn't use agent.
     }
