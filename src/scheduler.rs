@@ -169,7 +169,7 @@ pub async fn run_migration(pool: DbPool, tx: broadcast::Sender<(i64, Vec<Label>)
 
         if !force_negation_labels.is_empty() {
              // 0 sequence for revocation
-             if let Err(e) = tx.send((0, force_negation_labels)) {
+             if let Err(_e) = tx.send((0, force_negation_labels)) {
                  tracing::error!(did, "Failed to broadcast force negations");
              } else {
                  tracing::info!(did, "Broadcasted FORCE negation for old labels");

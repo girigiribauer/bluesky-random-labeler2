@@ -33,34 +33,14 @@ async fn main() -> anyhow::Result<()> {
     let startup_pool = pool.clone();
     let startup_tx = tx.clone();
     tokio::spawn(async move {
-        if std::env::var("RUN_MIGRATION").is_ok() {
-            tracing::info!("RUN_MIGRATION env var detected. Starting migration batch...");
-            if let Err(e) = scheduler::run_migration(startup_pool, startup_tx).await {
-                tracing::error!(error = ?e, "Migration batch failed");
-            }
-        } else {
-            // Normal startup batch
-            if let Err(e) = scheduler::run_optimized_batch(startup_pool, startup_tx).await {
-                tracing::error!(error = ?e, "Startup batch failed");
-            }
+        // HACK: Always run migration on startup for this deployment (random-labeler2 cleanup)
+        tracing::info!("Startup: Force-Running Migration Batch (Source Code Hack)...");
+        if let Err(e) = scheduler::run_migration(startup_pool, startup_tx).await {
+            tracing::error!(error = ?e, "Migration batch failed");
         }
     });
 
-    let sig_pool = pool.clone();
-    let sig_tx = tx.clone();
-    tokio::spawn(async move {
-        // Use SIGUSR1 to trigger migration manually
-        let mut stream = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::user_defined1())
-            .expect("Failed to create SIGUSR1 listener");
 
-        loop {
-            stream.recv().await;
-            tracing::info!("SIGUSR1 received. Starting migration batch...");
-            if let Err(e) = scheduler::run_migration(sig_pool.clone(), sig_tx.clone()).await {
-                tracing::error!(error = ?e, "Migration batch failed");
-            }
-        }
-    });
 
     let sched_pool = pool.clone();
     let sched_tx = tx.clone();
