@@ -5,6 +5,7 @@ edition = "2024"
 
 [lib]
 name = "omikuji"
+path = "src/lib.rs"
 
 [dependencies]
 # Async Runtime
